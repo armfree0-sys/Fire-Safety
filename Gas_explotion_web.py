@@ -25,32 +25,42 @@ GasVolume = [
     [6102, 4176, 7044, 7019, 4027, 3317, 9798, 9315, 3898, 4628]
 ]
 
-# Створюємо DataFrame
-df = pd.DataFrame(GasVolume)
+# 2. Створюємо DataFrame, використовуючи нову назву GasVolume
+df_m_table = pd.DataFrame(GasVolume)
+df_m_table.columns = [str(i) for i in range(10)]
+df_m_table.index = [str(i) for i in range(10)]
 
-# Налаштовуємо назви колонок та індексів
-df.columns = [f"{i}" for i in range(10)]
-df.index = [f"{i}" for i in range(10)]
+# 3. Візуальна "шапка" таблиці
+st.markdown("### Таблиця 1. Вибір маси (m)")
 
-# Виведення заголовків як на зображенні
-st.markdown("### Таблиця 1. Об’єм горючого газу, що приймають участь у вибуху [м$3$]")
-
-# Створюємо візуальну структуру заголовків за допомогою колонок або Markdown
 st.markdown("""
-<table style="width:100%; border-collapse: collapse; text-align: center;">
+<style>
+    .custom-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-family: sans-serif;
+        text-align: center;
+    }
+    .custom-table th {
+        border: 1px solid #dee2e6;
+        padding: 8px;
+        background-color: #f8f9fa;
+    }
+</style>
+<table class="custom-table">
     <tr>
-        <th rowspan="2" style="border: 1px solid gray; background-color: #f0f2f6;">Остання цифра<br>залікової книжки</th>
-        <th colspan="10" style="border: 1px solid gray; background-color: #f0f2f6;">Передостання цифра залікової книжки</th>
+        <th rowspan="2" style="width: 20%;">Остання цифра залікової книжки</th>
+        <th colspan="10">Передостання цифра залікової книжки</th>
     </tr>
     <tr>
-        <th style="border: 1px solid gray;">0</th><th style="border: 1px solid gray;">1</th>
-        <th style="border: 1px solid gray;">2</th><th style="border: 1px solid gray;">3</th>
-        <th style="border: 1px solid gray;">4</th><th style="border: 1px solid gray;">5</th>
-        <th style="border: 1px solid gray;">6</th><th style="border: 1px solid gray;">7</th>
-        <th style="border: 1px solid gray;">8</th><th style="border: 1px solid gray;">9</th>
+        <th>0</th><th>1</th><th>2</th><th>3</th><th>4</th>
+        <th>5</th><th>6</th><th>7</th><th>8</th><th>9</th>
     </tr>
 </table>
 """, unsafe_allow_html=True)
+
+# 4. Відображення таблиці
+st.table(df_m_table)
 
 # Відображення самої таблиці з даними (без повторних заголовків)
 st.dataframe(df, use_container_width=True)
@@ -130,6 +140,7 @@ current_year = datetime.datetime.now().year
 # Відображення авторських прав у футері
 st.markdown("---") 
 st.markdown(f"<p style='text-align: center; color: gray;'><small>© {current_year} Kostiantyn Afanasenko. Всі права захищені.</small></p>", unsafe_allow_html=True)
+
 
 
 
