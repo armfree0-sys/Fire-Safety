@@ -27,7 +27,7 @@ GasVolume = [
 
 # Створення таблиці з підписами осей
 df_m_table = pd.DataFrame(
-    data, 
+    GasVolume, 
     index=[f"Ост. цифра {i}" for i in range(10)], 
     columns=[f"Перед ост. {i}" for i in range(10)]
 )
@@ -120,6 +120,7 @@ current_year = datetime.datetime.now().year
 # Відображення авторських прав у футері
 st.markdown("---") 
 st.markdown(f"<p style='text-align: center; color: gray;'><small>© {current_year} Kostiantyn Afanasenko. Всі права захищені.</small></p>", unsafe_allow_html=True)
+
 
 
 
