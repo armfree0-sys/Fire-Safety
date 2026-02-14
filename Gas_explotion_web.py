@@ -46,7 +46,7 @@ with st.sidebar:
     st.header("Вхідні дані")
     m = st.number_input("Маса (m), кг", value=10.0, step=1.0)
     z = st.number_input("Коефіцієнт (z)", value=0.1, step=0.01, format="%.2f")
-    Q_gas_val = st.number_input("Теплота згоряння речовини Q_gas (x10^6), Дж/кг", value=5.1, step=0.1)
+    Q_gas_val = st.number_input("Теплота згоряння речовини $Q_{gas}$ (x$10^6$), Дж/кг", value=5.1, step=0.1)
     
     # Фізичні константи
     Q0 = 4.52 * 10**6
@@ -106,6 +106,7 @@ current_year = datetime.datetime.now().year
 # Відображення авторських прав у футері
 st.markdown("---") 
 st.markdown(f"<p style='text-align: center; color: gray;'><small>© {current_year} Kostiantyn Afanasenko. Всі права захищені.</small></p>", unsafe_allow_html=True)
+
 
 
 
