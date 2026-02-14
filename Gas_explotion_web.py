@@ -33,7 +33,7 @@ df_m_table = pd.DataFrame(
 )
 
 # Вивід заголовка та таблиці на сторінку
-st.markdown("### Таблиця 1. Об’єм горючого газу [$V$], що приймає участь у вибуху [м$3$]")
+st.markdown("### Таблиця 1. Об’єм горючого газу [$V$], що приймає участь у вибуху [м^3]")
 st.write("Знайдіть значення на перетині останньої та передостанньої цифр вашого номера:")
 
 # Використовуємо dataframe для зручного перегляду (можна сортувати або розширювати)
@@ -106,6 +106,7 @@ current_year = datetime.datetime.now().year
 # Відображення авторських прав у футері
 st.markdown("---") 
 st.markdown(f"<p style='text-align: center; color: gray;'><small>© {current_year} Kostiantyn Afanasenko. Всі права захищені.</small></p>", unsafe_allow_html=True)
+
 
 
 
