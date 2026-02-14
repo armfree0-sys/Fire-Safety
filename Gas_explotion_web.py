@@ -39,7 +39,7 @@ st.write("Знайдіть значення на перетині останнь
 # Використовуємо dataframe для зручного перегляду (можна сортувати або розширювати)
 st.dataframe(df_m_table, use_container_width=True)
 
-st.write("Введіть розраховані параметри на бічній панелі, щоб отримати графік надлишкового тиску вибуху для вашого сценарію.")
+st.info("Введіть розраховані параметри на бічній панелі, щоб отримати графік надлишкового тиску вибуху для вашого сценарію.")
 
 # Створюємо бічну панель (Sidebar) для введення даних
 with st.sidebar:
@@ -106,6 +106,7 @@ current_year = datetime.datetime.now().year
 # Відображення авторських прав у футері
 st.markdown("---") 
 st.markdown(f"<p style='text-align: center; color: gray;'><small>© {current_year} Kostiantyn Afanasenko. Всі права захищені.</small></p>", unsafe_allow_html=True)
+
 
 
 
