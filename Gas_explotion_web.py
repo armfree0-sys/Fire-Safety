@@ -1,4 +1,5 @@
 import streamlit as st
+import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import datetime
@@ -106,6 +107,7 @@ current_year = datetime.datetime.now().year
 # Відображення авторських прав у футері
 st.markdown("---") 
 st.markdown(f"<p style='text-align: center; color: gray;'><small>© {current_year} Kostiantyn Afanasenko. Всі права захищені.</small></p>", unsafe_allow_html=True)
+
 
 
 
