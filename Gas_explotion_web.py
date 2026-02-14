@@ -25,39 +25,19 @@ GasVolume = [
     [6102, 4176, 7044, 7019, 4027, 3317, 9798, 9315, 3898, 4628]
 ]
 
-# 2. Створюємо DataFrame, використовуючи нову назву GasVolume
-df_m_table = pd.DataFrame(GasVolume)
-df_m_table.columns = [str(i) for i in range(10)]
-df_m_table.index = [str(i) for i in range(10)]
+# Створення таблиці з підписами осей
+df_m_table = pd.DataFrame(
+    data, 
+    index=[f"Ост. цифра {i}" for i in range(10)], 
+    columns=[f"Перед ост. {i}" for i in range(10)]
+)
 
-# 3. Візуальна "шапка" таблиці
-st.markdown("### Таблиця 1. Вибір маси (m)")
+# Вивід заголовка та таблиці на сторінку
+st.markdown("### Таблиця 1. Об’єм горючого газу [$V$], що приймає участь у вибуху [м3]")
+st.write("Знайдіть значення на перетині останньої та передостанньої цифр вашого номера:")
 
-st.markdown("""
-<style>
-    .custom-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-family: sans-serif;
-        text-align: center;
-    }
-    .custom-table th {
-        border: 1px solid #dee2e6;
-        padding: 8px;
-        background-color: #f8f9fa;
-    }
-</style>
-<table class="custom-table">
-    <tr>
-        <th rowspan="2" style="width: 20%;">Остання цифра залікової книжки</th>
-        <th colspan="10">Передостання цифра залікової книжки</th>
-    </tr>
-    <tr>
-        <th>0</th><th>1</th><th>2</th><th>3</th><th>4</th>
-        <th>5</th><th>6</th><th>7</th><th>8</th><th>9</th>
-    </tr>
-</table>
-""", unsafe_allow_html=True)
+# Використовуємо dataframe для зручного перегляду (можна сортувати або розширювати)
+st.dataframe(df_m_table, use_container_width=True)
 
 # 4. Відображення таблиці
 st.table(df_m_table)
@@ -140,6 +120,7 @@ current_year = datetime.datetime.now().year
 # Відображення авторських прав у футері
 st.markdown("---") 
 st.markdown(f"<p style='text-align: center; color: gray;'><small>© {current_year} Kostiantyn Afanasenko. Всі права захищені.</small></p>", unsafe_allow_html=True)
+
 
 
 
