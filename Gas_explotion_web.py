@@ -25,12 +25,35 @@ GasVolume = [
     [6102, 4176, 7044, 7019, 4027, 3317, 9798, 9315, 3898, 4628]
 ]
 
-# Створення таблиці з підписами осей
-df_m_table = pd.DataFrame(
-    GasVolume, 
-    index=[f"Ост. цифра {i}" for i in range(10)], 
-    columns=[f"Перед ост. {i}" for i in range(10)]
-)
+# Створюємо DataFrame
+df = pd.DataFrame(GasVolume)
+
+# Налаштовуємо назви колонок та індексів
+df.columns = [f"{i}" for i in range(10)]
+df.index = [f"{i}" for i in range(10)]
+
+# Виведення заголовків як на зображенні
+st.markdown("### Таблиця 1. Об’єм горючого газу, що приймають участь у вибуху [м$3$]")
+
+# Створюємо візуальну структуру заголовків за допомогою колонок або Markdown
+st.markdown("""
+<table style="width:100%; border-collapse: collapse; text-align: center;">
+    <tr>
+        <th rowspan="2" style="border: 1px solid gray; background-color: #f0f2f6;">Остання цифра<br>залікової книжки</th>
+        <th colspan="10" style="border: 1px solid gray; background-color: #f0f2f6;">Передостання цифра залікової книжки</th>
+    </tr>
+    <tr>
+        <th style="border: 1px solid gray;">0</th><th style="border: 1px solid gray;">1</th>
+        <th style="border: 1px solid gray;">2</th><th style="border: 1px solid gray;">3</th>
+        <th style="border: 1px solid gray;">4</th><th style="border: 1px solid gray;">5</th>
+        <th style="border: 1px solid gray;">6</th><th style="border: 1px solid gray;">7</th>
+        <th style="border: 1px solid gray;">8</th><th style="border: 1px solid gray;">9</th>
+    </tr>
+</table>
+""", unsafe_allow_html=True)
+
+# Відображення самої таблиці з даними (без повторних заголовків)
+st.dataframe(df, use_container_width=True)
 
 # Вивід заголовка та таблиці на сторінку
 st.markdown("### Таблиця 1. Об’єм горючого газу [$V$], що приймає участь у вибуху [м3]")
@@ -107,6 +130,7 @@ current_year = datetime.datetime.now().year
 # Відображення авторських прав у футері
 st.markdown("---") 
 st.markdown(f"<p style='text-align: center; color: gray;'><small>© {current_year} Kostiantyn Afanasenko. Всі права захищені.</small></p>", unsafe_allow_html=True)
+
 
 
 
