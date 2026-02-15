@@ -54,7 +54,7 @@ Gas_data = {
 }
 
 # Перетворюємо словник у список рядків і створюємо DataFrame
-df = pd.DataFrame.from_dict(gas_data, orient='index')
+df = pd.DataFrame.from_dict(Gas_data, orient='index')
 
 # Перейменовуємо колонки для гарного вигляду
 df.columns = ["Речовина", "Формула", "M, кг/кмоль", "ρ, кг/м³", "Q, кДж/кг"]
@@ -168,6 +168,7 @@ st.table(damage_df)
 current_year = datetime.datetime.now().year
 st.markdown("---") 
 st.markdown(f"<p style='text-align: center; color: gray;'><small>© {current_year} Kostiantyn Afanasenko. Всі права захищені.</small></p>", unsafe_allow_html=True)
+
 
 
 
