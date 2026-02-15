@@ -86,7 +86,7 @@ m_pr = (Q_gas * m * z) / Q0
 # Функція для знаходження радіуса r для цільового тиску P_target
 def calculate_radius(target_P, m_pr, P0):
     func = lambda r: P0 * (0.8 * m_pr**0.33 / r + 3 * m_pr**0.66 / r**2 + 5 * m_pr / r**3) - target_P
-    # Чисельне знаходження кореня (початкове наближення 10м)
+    # Чисельне знаходження кореня (початкове наближення 10 м)
     r_sol = fsolve(func, 10)
     return float(r_sol[0])
 
@@ -144,7 +144,7 @@ with col1:
         ax.axhline(y=p_val, color=colors[i], linestyle=':', alpha=0.5)
 
     ax.set_ylim(0, 120)
-    ax.set_xlim(0, 220)
+    ax.set_xlim(0, 300)
     ax.set_xlabel('Відстань r, м')
     ax.set_ylabel('Тиск P, кПа')
     ax.legend(fontsize='small')
@@ -198,6 +198,7 @@ st.table(damage_df)
 current_year = datetime.datetime.now().year
 st.markdown("---") 
 st.markdown(f"<p style='text-align: center; color: gray;'><small>© {current_year} Kostiantyn Afanasenko. Всі права захищені.</small></p>", unsafe_allow_html=True)
+
 
 
 
