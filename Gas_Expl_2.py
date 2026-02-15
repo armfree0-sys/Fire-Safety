@@ -75,7 +75,7 @@ for p_val in critical_pressures:
     radius_results[p_val] = calculate_radius(p_val, m_pr, P0)
 
 st.markdown("""### 2. Визначити масу газу за формулою: \n\n"""
-           """m=V*ρ""")
+           """$m=V * ρ$""")
 
 # Відображення m_pr
 st.metric(label="Розраховане $m_{pr}$", value=f"{m_pr:.2f}")
@@ -146,6 +146,7 @@ st.table(damage_df)
 current_year = datetime.datetime.now().year
 st.markdown("---") 
 st.markdown(f"<p style='text-align: center; color: gray;'><small>© {current_year} Kostiantyn Afanasenko. Всі права захищені.</small></p>", unsafe_allow_html=True)
+
 
 
 
