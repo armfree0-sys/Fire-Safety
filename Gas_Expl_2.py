@@ -132,7 +132,7 @@ col1, col2 = st.columns([1, 1])
 
 with col1:
     st.subheader("📈 Графік тиску та критичні радіуси")
-    r_plot = np.linspace(2, 250, 500)
+    r_plot = np.linspace(2, 300, 500)
     P_plot = P0 * (0.8 * m_pr**0.33 / r_plot + 3 * m_pr**0.66 / r_plot**2 + 5 * m_pr / r_plot**3)
     
     fig, ax = plt.subplots(figsize=(8, 6))
@@ -198,6 +198,7 @@ st.table(damage_df)
 current_year = datetime.datetime.now().year
 st.markdown("---") 
 st.markdown(f"<p style='text-align: center; color: gray;'><small>© {current_year} Kostiantyn Afanasenko. Всі права захищені.</small></p>", unsafe_allow_html=True)
+
 
 
 
