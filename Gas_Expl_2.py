@@ -47,8 +47,8 @@ with st.sidebar:
     
     st.markdown("---")
     st.header("📍 Координати об'єкта")
-    lat = st.number_input("Широта (Lat)", value=50.4501, format="%.6f")
-    lon = st.number_input("Довгота (Lon)", value=30.5234, format="%.6f")
+    lat = st.number_input("Широта (Lat)", value=51.886080, format="%.6f")
+    lon = st.number_input("Довгота (Lon)", value=29.319470, format="%.6f")
     
     Q0 = 4.52 * 10**6
     P0 = 101.3
@@ -141,3 +141,4 @@ st.table(damage_df)
 current_year = datetime.datetime.now().year
 st.markdown("---") 
 st.markdown(f"<p style='text-align: center; color: gray;'><small>© {current_year} Kostiantyn Afanasenko. Всі права захищені.</small></p>", unsafe_allow_html=True)
+
