@@ -40,6 +40,28 @@ df_m_table = pd.DataFrame(
 st.markdown("### Таблиця 1. Об’єм горючого газу ($V$), що приймає участь у вибуху [$м^3$]")
 st.dataframe(df_m_table, use_container_width=True)
 
+Gas_data = {
+    0: {"name": "Аміак", "formula": "NH3", "molar_mass": 17.03, "rho": 0.77, "heat": 18585},
+    1: {"name": "Ацетилен", "formula": "C2H2", "molar_mass": 26.038, "rho": 1.171, "heat": 49965},
+    2: {"name": "Водень", "formula": "H2", "molar_mass": 2.016, "rho": 0.089, "heat": 119841},
+    3: {"name": "Дивініловий ефір", "formula": "C4H6O", "molar_mass": 70.1, "rho": 0.713, "heat": 32610},
+    4: {"name": "Ізобутилен", "formula": "C4H8", "molar_mass": 56.11, "rho": 0.588, "heat": 45928},
+    5: {"name": "Оксид вуглецю", "formula": "CO", "molar_mass": 28.01, "rho": 1.25, "heat": 10104},
+    6: {"name": "Оксид етилену", "formula": "C2H4O", "molar_mass": 44.1, "rho": 1.86, "heat": 48400},
+    7: {"name": "Пропан", "formula": "C3H8", "molar_mass": 34.076, "rho": 1.96, "heat": 46300},
+    8: {"name": "Етан", "formula": "C2H6", "molar_mass": 30.069, "rho": 1.342, "heat": 52413},
+    9: {"name": "Етилен", "formula": "C2H4", "molar_mass": 28.05, "rho": 1.178, "heat": 46988}
+}
+
+# Перетворюємо словник у список рядків і створюємо DataFrame
+df = pd.DataFrame.from_dict(gas_data, orient='index')
+
+# Перейменовуємо колонки для гарного вигляду
+df.columns = ["Речовина", "Формула", "M, кг/кмоль", "ρ, кг/м³", "Q, кДж/кг"]
+
+st.write("### Таблиця 2. Вид та характеристики горючого газу")
+st.table(df)
+
 # Створюємо бічну панель
 with st.sidebar:
     st.header("Вхідні дані")
@@ -146,6 +168,7 @@ st.table(damage_df)
 current_year = datetime.datetime.now().year
 st.markdown("---") 
 st.markdown(f"<p style='text-align: center; color: gray;'><small>© {current_year} Kostiantyn Afanasenko. Всі права захищені.</small></p>", unsafe_allow_html=True)
+
 
 
 
