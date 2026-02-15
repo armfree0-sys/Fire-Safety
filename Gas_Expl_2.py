@@ -131,7 +131,13 @@ with col1:
 with col2:
     st.subheader("🗺️ План місцевості (Радіуси ураження)")
     # Створення мапи
-    m_map = folium.Map(location=[lat, lon], zoom_start=17, control_scale=True)
+    m_map = folium.Map(
+    location=[lat, lon], 
+    zoom_start=17, 
+    control_scale=True,
+    tiles='https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+    attr='Esri'
+)
     
     # Центр (Резервуар)
     folium.Marker([lat, lon], tooltip="Епіцентр вибуху (Резервуар)", icon=folium.Icon(color='red', icon='fire')).add_to(m_map)
@@ -170,6 +176,7 @@ st.table(damage_df)
 current_year = datetime.datetime.now().year
 st.markdown("---") 
 st.markdown(f"<p style='text-align: center; color: gray;'><small>© {current_year} Kostiantyn Afanasenko. Всі права захищені.</small></p>", unsafe_allow_html=True)
+
 
 
 
