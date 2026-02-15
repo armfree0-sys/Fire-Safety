@@ -42,7 +42,7 @@ st.dataframe(df_m_table, use_container_width=True)
 
 Gas_data = {
     0: {"name": "Аміак", "formula": "$NH_3$", "molar_mass": 17.03, "rho": 0.77, "heat": 18585},
-    1: {"name": "Ацетилен", "formula": "C2H2", "molar_mass": 26.038, "rho": 1.171, "heat": 49965},
+    1: {"name": "Ацетилен", "formula": "$C_2H_2$", "molar_mass": 26.038, "rho": 1.171, "heat": 49965},
     2: {"name": "Водень", "formula": "H2", "molar_mass": 2.016, "rho": 0.089, "heat": 119841},
     3: {"name": "Дивініловий ефір", "formula": "C4H6O", "molar_mass": 70.1, "rho": 0.713, "heat": 32610},
     4: {"name": "Ізобутилен", "formula": "C4H8", "molar_mass": 56.11, "rho": 0.588, "heat": 45928},
@@ -168,6 +168,7 @@ st.table(damage_df)
 current_year = datetime.datetime.now().year
 st.markdown("---") 
 st.markdown(f"<p style='text-align: center; color: gray;'><small>© {current_year} Kostiantyn Afanasenko. Всі права захищені.</small></p>", unsafe_allow_html=True)
+
 
 
 
