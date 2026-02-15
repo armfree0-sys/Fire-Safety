@@ -120,7 +120,6 @@ df_coords_table = pd.DataFrame(Coords_Dict)
 
 # Вивід Таблиці 3 на головну сторінку
 st.markdown("### Таблиця 3. Координати розташування резервуару")
-st.write("Оберіть координати епіцентру відповідно до вашого варіанту:")
 
 # Використовуємо відображення без індексів для чистоти
 st.dataframe(df_coords_table, use_container_width=True, hide_index=True)
@@ -199,6 +198,7 @@ st.table(damage_df)
 current_year = datetime.datetime.now().year
 st.markdown("---") 
 st.markdown(f"<p style='text-align: center; color: gray;'><small>© {current_year} Kostiantyn Afanasenko. Всі права захищені.</small></p>", unsafe_allow_html=True)
+
 
 
 
