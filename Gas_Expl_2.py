@@ -124,8 +124,7 @@ st.markdown("### Таблиця 3. Координати розташування
 # Використовуємо відображення без індексів для чистоти
 st.dataframe(df_coords_table, use_container_width=True, hide_index=True)
 
-# Відображення m_pr
-st.metric(label="Розраховане $m_{pr}$", value=f"{m_pr:.2f}")
+st.markdown("""### 5. Внести розраховані та вибрані дані у відповідні поля на бічній панелі""")
 
 # --- ВІЗУАЛІЗАЦІЯ: ГРАФІК ТА МАПА ---
 col1, col2 = st.columns([1, 1])
@@ -194,10 +193,13 @@ damage_df = pd.DataFrame({
 })
 st.table(damage_df)
 
+st.markdown("""### 6. У відповідності до здійснених розрахунків зробити висновки""")
+
 # Футер
 current_year = datetime.datetime.now().year
 st.markdown("---") 
 st.markdown(f"<p style='text-align: center; color: gray;'><small>© {current_year} Kostiantyn Afanasenko. Всі права захищені.</small></p>", unsafe_allow_html=True)
+
 
 
 
