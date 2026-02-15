@@ -98,9 +98,32 @@ radius_results = {}
 for p_val in critical_pressures:
     radius_results[p_val] = calculate_radius(p_val, m_pr, P0)
 
-st.markdown("""### 2. Визначити масу газу за формулою: \n\n""")
+st.markdown("""### 3. Визначити масу газу за формулою: \n\n""")
 st.markdown("""### $m=V \cdot ρ$""")
 
+st.markdown("""### 4. За таблицею 3 обрати координати резервуару""")
+
+# Дані для Таблиці 3
+Coords_Dict = {
+    "Остання цифра залікової": [str(i) for i in range(10)],
+    "Широта (Lat)": [
+        55.060735, 55.056151, 55.056820, 55.066923, 55.067487, 
+        55.066871, 55.071883, 48.489088, 48.490757, 48.491298
+    ],
+    "Довгота (Lon)": [
+        73.236297, 73.228238, 73.238195, 73.222794, 73.226228, 
+        73.224242, 73.215505, 44.620166, 44.623969, 44.623580
+    ]
+}
+
+df_coords_table = pd.DataFrame(Coords_Dict)
+
+# Вивід Таблиці 3 на головну сторінку
+st.markdown("### Таблиця 3. Координати розташування резервуару")
+st.write("Оберіть координати епіцентру відповідно до вашого варіанту:")
+
+# Використовуємо відображення без індексів для чистоти
+st.dataframe(df_coords_table, use_container_width=True, hide_index=True)
 
 # Відображення m_pr
 st.metric(label="Розраховане $m_{pr}$", value=f"{m_pr:.2f}")
@@ -176,6 +199,7 @@ st.table(damage_df)
 current_year = datetime.datetime.now().year
 st.markdown("---") 
 st.markdown(f"<p style='text-align: center; color: gray;'><small>© {current_year} Kostiantyn Afanasenko. Всі права захищені.</small></p>", unsafe_allow_html=True)
+
 
 
 
