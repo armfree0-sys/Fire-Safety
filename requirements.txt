@@ -1,5 +1,7 @@
 streamlit
-folium 
+pandas
+numpy
+matplotlib
+folium
 streamlit-folium
 scipy
-matplotlib
