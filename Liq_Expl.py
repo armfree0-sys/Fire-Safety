@@ -111,7 +111,7 @@ for p_val in critical_pressures:
     radius_results[p_val] = calculate_radius(p_val, m_pr, P0)
 
 st.markdown("""### 4. Визначити інтенсивність випаровування: \n\n""")
-st.markdown(r"W = 10^{-6} \cdot \eta \cdot \sqrt{M} \cdot P_s")
+st.latex(r"W = 10^{-6} \cdot \eta \cdot \sqrt{M} \cdot P_s")
 
 st.markdown("""### 4. За таблицею 3 обрати координати резервуару""")
 
