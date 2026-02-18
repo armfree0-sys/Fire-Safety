@@ -37,21 +37,21 @@ with col_text:
 
 # Секція 1: Геометрія та об'єм
 with st.expander("Параметри резервуара та Гідравліка", expanded=True):
-    $V_p$ = st.number_input("Робочий об'єм рідини Vp, м³", value=15.0)
-    $F_res$ = st.number_input("Площа перерізу резервуара F, м²", value=5.0)
-    $H_1$ = st.number_input("Висота H1 (початок зливу), м", value=4.0)
-    $H_2$ = st.number_input("Висота H2 (кінець зливу), м", value=0.5)
-    $d_vn$ = st.number_input("Внутрішній діаметр труби d_вн, м", value=0.1)
+    V_p = st.number_input("Робочий об'єм рідини $V_p$, м³", value=15.0)
+    F_res = st.number_input("Площа перерізу резервуара $F_res$, м²", value=5.0)
+    H_1 = st.number_input("Висота $H_1$ (початок зливу), м", value=4.0)
+    H_2 = st.number_input("Висота $H_2$ (кінець зливу), м", value=0.5)
+    d_вн = st.number_input("Внутрішній діаметр труби $d_вн$, м", value=0.1)
 
 # Секція 2: Часові параметри
 with st.expander("Часові обмеження"):
-    $t_zl_max$ = st.number_input("Допустима тривалість [t]зл, с", value=900)
-    $t_oper$ = st.number_input("Час приведення в дію t_опер, с", value=300)
+    tau_зл = st.number_input("Допустима тривалість [tau]зл, с", value=900)
+    t_oper = st.number_input("Час приведення в дію  $t_oper$, с", value=300)
 
 # Секція 3: Властивості рідини
 with st.expander("Властивості рідини"):
-    $rho$ = st.number_input("Густина рідини ρ, кг/м³", value=790.5)
-    $mu$ = st.number_input("Динамічна в'язкість μ, Па·с", value=0.34)
+    ρ = st.number_input("Густина рідини ρ, кг/м³", value=790.5)
+    μ = st.number_input("Динамічна в'язкість μ, Па·с", value=0.34)
 
 # --- РОЗРАХУНКОВА ЧАСТИНА ---
 
