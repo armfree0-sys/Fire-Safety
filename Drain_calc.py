@@ -70,7 +70,7 @@ x_vikh = 1.0
 zeta_c = (1 * x_vkh) + (1 * x_z) + (2 * x_k) + (1 * x_g) + (1 * x_vikh)
 
 # 3. Максимально допустима тривалість
-t_sp_m = t_zl_max - t_oper
+t_sp_m = tau_зл - t_oper
 
 # 4. Коефіцієнт витрати (попередній)
 phi_syst_init = 1 / math.sqrt(zeta_c)
