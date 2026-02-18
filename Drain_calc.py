@@ -1,5 +1,6 @@
 import streamlit as st
 import math
+from PIL import Image
 
 st.set_page_config(page_title="Розрахунок аварійного зливу", layout="wide")
 
