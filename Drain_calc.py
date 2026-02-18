@@ -10,7 +10,7 @@ st.title("🧮 Розрахунок системи аварійного спор
 # Розміщення схеми
 # Отримуємо шлях до папки, де лежить скрипт (працює і локально, і на сервері)
 base_path = os.path.dirname(__file__)
-img_relative_path = os.path.join(base_path, 'image_c9fc58.png')
+img_relative_path = os.path.join(base_path, 'Drain_Sys_Image.png')
 
 if os.path.exists(img_relative_path):
     img = Image.open(img_relative_path)
