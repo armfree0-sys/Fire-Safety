@@ -38,8 +38,8 @@ with col_text:
 with st.expander("Параметри резервуара та Гідравліка", expanded=True):
     V_p = st.number_input("Робочий об'єм рідини $V_p$, м³", value=15.0)
     F_res = st.number_input("Площа перерізу резервуара $F_{res}$, м²", value=5.0)
-    H_1 = st.number_input("Висота $H_1$ (початок зливу), м", value=4.0)
-    H_2 = st.number_input("Висота $H_2$ (кінець зливу), м", value=0.5)
+    H1 = st.number_input("Висота $H_1$ (початок зливу), м", value=4.0)
+    H2 = st.number_input("Висота $H_2$ (кінець зливу), м", value=0.5)
     d_вн = st.number_input("Внутрішній діаметр труби $d_{вн}$, м", value=0.1)
 
 # Секція 2: Часові параметри
