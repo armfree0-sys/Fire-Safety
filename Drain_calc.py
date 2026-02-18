@@ -12,7 +12,7 @@ col_text, col_img = st.columns([1, 1])
 with col_img:
     # Замініть 'image_c9fc58.png' на шлях до вашого файлу
     try:
-        image = Image.open('image_c9fc58.png')
+        image = Image.open('Drain_Sys_Image.png')
         st.image(image, caption="Схема системи аварійного зливу", use_container_width=True)
     except FileNotFoundError:
         st.warning("Файл зображення не знайдено. Переконайтеся, що image_c9fc58.png лежить у папці з кодом.")
