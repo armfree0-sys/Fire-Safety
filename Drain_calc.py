@@ -9,14 +9,13 @@ st.title("🧮 Розрахунок системи аварійного спор
 
 # Розміщення схеми
 # Отримуємо шлях до папки, де лежить скрипт (працює і локально, і на сервері)
-base_path = os.path.dirname(__file__)
-img_relative_path = os.path.join(base_path, 'Drain_Sys_Image.png')
-
-if os.path.exists(img_relative_path):
-    img = Image.open(img_relative_path)
-    st.image(img)
-else:
-    st.warning("Зображення не знайдено.")
+col_text, col_img = st.columns([1, 1])
+with col_img:
+    if os.path.exists(img_path):
+        image = Image.open(img_path)
+        st.image(image, caption="Схема системи", use_container_width=True)
+    else:
+        st.warning("Файл зображення не знайдено.")
 
 with col_text:
     st.markdown("""
