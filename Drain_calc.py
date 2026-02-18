@@ -38,15 +38,15 @@ with col_text:
 # Секція 1: Геометрія та об'єм
 with st.expander("Параметри резервуара та Гідравліка", expanded=True):
     V_p = st.number_input("Робочий об'єм рідини $V_p$, м³", value=15.0)
-    F_res = st.number_input("Площа перерізу резервуара $F_res$, м²", value=5.0)
+    F_res = st.number_input("Площа перерізу резервуара $F_{res}$, м²", value=5.0)
     H_1 = st.number_input("Висота $H_1$ (початок зливу), м", value=4.0)
     H_2 = st.number_input("Висота $H_2$ (кінець зливу), м", value=0.5)
-    d_вн = st.number_input("Внутрішній діаметр труби $d_вн$, м", value=0.1)
+    d_вн = st.number_input("Внутрішній діаметр труби $d_{вн}$, м", value=0.1)
 
 # Секція 2: Часові параметри
 with st.expander("Часові обмеження"):
-    tau_зл = st.number_input("Допустима тривалість [tau]зл, с", value=900)
-    t_oper = st.number_input("Час приведення в дію  $t_oper$, с", value=300)
+    tau_зл = st.number_input("Допустима тривалість [$\tau$]зл, с", value=900)
+    t_oper = st.number_input("Час приведення в дію  $\tau_{oper}$, с", value=300)
 
 # Секція 3: Властивості рідини
 with st.expander("Властивості рідини"):
