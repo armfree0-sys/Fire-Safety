@@ -63,7 +63,7 @@ col_text1, col_img1 = st.columns([1, 1])
 with col_img1:
     try:
         image = Image.open('tube_knee.png')
-        st.image(image, caption="Коліно труби", use_container_width=True)
+        st.image(image, caption="Коліно труби", width=300)
     except FileNotFoundError:
         st.warning("Помилка із зображенням коліном.")
 
