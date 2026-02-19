@@ -61,7 +61,7 @@ st.markdown(""" ### 1. Обрати значення місцевих опорі
 st.markdown(""" Опис та перелік місцевих опорів """)
 col_text1, col_img1 = st.columns([1, 1])
 with col_img1:
-      try:
+    try:
         image = Image.open('tube_knee.png')
         st.image(image, caption="Коліно труби", use_container_width=True)
     except FileNotFoundError:
