@@ -35,6 +35,13 @@ data = {
     r"$ξ_{вн. звуж.}$": ["0,5", "0,49", "0,46", "0,43", "0,4", "0,35", "0,29", "0,22", "0,14", "0"]
 }
 
+with col_img_d1/d2:
+    try:
+        image = Image.open('Flow_Narrowing.png')
+        st.image(image, caption="Раптове звуження потоку", width=300)
+    except FileNotFoundError:
+        st.warning("Помилка із зображенням звуження потоку.")
+
 # Створюємо DataFrame
 df = pd.DataFrame(data)
 
