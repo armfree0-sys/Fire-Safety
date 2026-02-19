@@ -17,11 +17,14 @@ col_text, col_img = st.columns([1, 1])
 
 with col_img:
     # Замініть 'Drain_Sys_Image.png' на шлях до вашого файлу
-    try:
-        image = Image.open('Drain_Sys_Image.png')
-        st.image(image, caption="Схема системи аварійного зливу", use_container_width=True)
-    except FileNotFoundError:
-        st.warning("Файл зображення не знайдено. Переконайтеся, що Drain_Sys_Image.png лежить у папці з кодом.")
+    base_path = os.path.dirname(__file__)
+img_relative_path = os.path.join(base_path, 'Drain_Sys_Image.png')
+
+if os.path.exists(img_relative_path):
+    img = Image.open(img_relative_path)
+    st.image(img)
+else:
+    st.warning("Зображення не знайдено.")
 
 with col_text:
     st.markdown("""
