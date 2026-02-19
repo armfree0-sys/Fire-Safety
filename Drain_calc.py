@@ -56,12 +56,6 @@ with col_d1d2_image:
 # Створюємо DataFrame
 df = pd.DataFrame(data)
 
-# Транспонуємо таблицю, щоб вона виглядала як у вашому запиті (горизонтально)
-df_horizontal = df.set_index("$d_2/d_1$").T
-
-# Виводимо таблицю в Streamlit
-st.table(df_horizontal)
-
 with col_text:
     st.markdown("""
     ### Геометричні параметри на схемі:
