@@ -55,8 +55,14 @@ with st.expander("Властивості рідини"):
 # --- РОЗРАХУНКОВА ЧАСТИНА ---
 
  st.markdown(""" ### 1. Обрати значення місцевих опорів з таблиці """)
-
-
+st.markdown(""" Опис та перелік місцевих опорів """)
+col_text1, col_img1 = st.columns([1, 1])
+with col_img1:
+      try:
+        image = Image.open('tube_knee.png')
+        st.image(image, caption="Коліно труби", use_container_width=True)
+    except FileNotFoundError:
+        st.warning("Помилка із зображенням коліном.")
 
 # --- НАВЕСТИ СХЕМУ ВИБОРУ МІСЦЕВИХ ОТВОРІВ
 
