@@ -99,7 +99,6 @@ with col_img_entr:
     except FileNotFoundError:
         st.warning("Помилка із зображенням входу.")
 with col_text_entr:
-    st.markdown(r"**Таблиця**. Коефіцієнт місцевого опору входу до труби $\xi_к$")
     data_entrance = {
         "Тип входу": ["З гострими краями", "З плавним входом"],
         r"$\xi_{вх}$": [0.5, 0.2]
