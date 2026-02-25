@@ -87,7 +87,7 @@ with col_text1:
     # Створюємо DataFrame та транспонуємо для горизонтального вигляду
     df_bend = pd.DataFrame(bend_data).set_index(r"Кут $\alpha$, град").T
     
-    st.table(df_bend)
+    st.table(df_bend.T)
 
 
 
