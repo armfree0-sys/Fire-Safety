@@ -101,16 +101,16 @@ with col_img_entr:
 with col_text_entr:
     st.markdown(r"**Таблиця**. Коефіцієнт місцевого опору входу до труби $\xi_к$")
         data_entrance = {
-    "Тип входу": ["З гострими краями", "З плавним входом"],
-    r"$\xi_{вх}$": [0.5, 0.2]
-}
+            "Тип входу": ["З гострими краями", "З плавним входом"],
+            r"$\xi_{вх}$": [0.5, 0.2]
+        }
 
-# Створення DataFrame
-df_entrance = pd.DataFrame(data_entrance)
+        # Створення DataFrame
+        df_entrance = pd.DataFrame(data_entrance)
 
-# Відображення таблиці
-st.subheader("Коефіцієнти місцевого опору на вході в трубу")
-st.table(df_entrance)
+        # Відображення таблиці
+        st.subheader("Коефіцієнти місцевого опору на вході в трубу")
+        st.table(df_entrance)
 
 # Якщо вам потрібно відобразити її горизонтально (як у попередньому запиті):
 df_entrance_hor = df_entrance.set_index("Тип входу").T
