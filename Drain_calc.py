@@ -90,7 +90,6 @@ with col_text1:
     st.table(df_bend.T)
 
 st.markdown(r"### Коефіцієнт місцевого опору входу до труби $\xi_{вх}$")
-st.markdown(r"**Таблиця**. Коефіцієнт місцевого опору входу до труби $\xi_{вх}$")
 col_text_entr, col_img_entr = st.columns([1, 1])
 with col_img_entr:
     try:
@@ -99,6 +98,7 @@ with col_img_entr:
     except FileNotFoundError:
         st.warning("Помилка із зображенням входу.")
 with col_text_entr:
+    st.markdown(r"**Таблиця**. Коефіцієнт місцевого опору входу до труби $\xi_{вх}$")
     data_entrance = {
         "Тип входу": ["З гострими краями", "З плавним входом"],
         r"$\xi_{вх}$": [0.5, 0.2]
@@ -115,6 +115,10 @@ with col_text_entr:
 df_entrance_hor = df_entrance.set_index("Тип входу").T
 st.table(df_entrance_hor)
 
+
+# --- Початок розрахунків
+st.markdown(r"### Обрати коефіцієнти місцевих опорів для проведення розрахунків за формулою: $\xi_{вх}$")
+st.latex(r"$xi_c$ = \sum N_i \cdot $xi_i$")
 
 
 # --- НАВЕСТИ СХЕМУ ВИБОРУ МІСЦЕВИХ ОТВОРІВ
