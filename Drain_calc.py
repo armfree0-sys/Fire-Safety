@@ -29,7 +29,7 @@ else:
 
 st.markdown(""" ### 1. Обрати значення місцевих опорів з таблиці """)
 st.markdown(""" ### Опис та перелік місцевих опорів """)
-st.markdown("### Таблиця №. Значення коефіцієнту місцевого опору в разі раптового (різкого) звуження трубопроводу")
+st.markdown("### Значення коефіцієнту місцевого опору в разі раптового (різкого) звуження трубопроводу")
 
 # Таблиця коенфіцієнтів опорів раптового розширення/звуження потоків
 col_d1d2_table, col_d1d2_image = st.columns([1.5, 1])
@@ -68,7 +68,7 @@ with col_text:
     * **$H_2$** — Висота від дна резервуара до входу в аварійну ємність
     """)
 
-st.markdown(r"### Таблиця №. Коефіцієнт місцевого опору коліна трубопроводу $\xi_к$")
+st.markdown(r"### Коефіцієнт місцевого опору коліна трубопроводу $\xi_к$")
 col_text1, col_img1 = st.columns([1, 1])
 with col_img1:
     try:
@@ -89,6 +89,32 @@ with col_text1:
     
     st.table(df_bend.T)
 
+st.markdown(r"### Коефіцієнт місцевого опору входу до труби $\xi_{вх}$")
+st.markdown(r"**Таблиця**. Коефіцієнт місцевого опору входу до труби $\xi_{вх}$")
+col_text_entr, col_img_entr = st.columns([1, 1])
+with col_img_entr:
+    try:
+        image = Image.open('Pipe_entr.png')
+        st.image(image, caption="Рисунок. Вхід до труби", width=300)
+    except FileNotFoundError:
+        st.warning("Помилка із зображенням входу.")
+with col_text_entr:
+    st.markdown(r"**Таблиця**. Коефіцієнт місцевого опору входу до труби $\xi_к$")
+        data_entrance = {
+    "Тип входу": ["З гострими краями", "З плавним входом"],
+    r"$\xi_{вх}$": [0.5, 0.2]
+}
+
+# Створення DataFrame
+df_entrance = pd.DataFrame(data_entrance)
+
+# Відображення таблиці
+st.subheader("Коефіцієнти місцевого опору на вході в трубу")
+st.table(df_entrance)
+
+# Якщо вам потрібно відобразити її горизонтально (як у попередньому запиті):
+df_entrance_hor = df_entrance.set_index("Тип входу").T
+st.table(df_entrance_hor)
 
 
 
