@@ -42,7 +42,7 @@ with col_d1d2_table:
         r"$\xi_{вн. звуж.}$": ["0,5", "0,49", "0,46", "0,43", "0,4", "0,35", "0,29", "0,22", "0,14", "0"]
     }
     df = pd.DataFrame(data).set_index(r"$d_2/d_1$").T
-    st.table(df)
+    st.table(df.T)
 
 with col_d1d2_image:
     try:
