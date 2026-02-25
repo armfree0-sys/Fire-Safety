@@ -76,8 +76,8 @@ with col_img1:
         st.image(image, caption="Рисунок. Коліно труби", width=300)
     except FileNotFoundError:
         st.warning("Помилка із зображенням коліном.")
-with col_text1:
 st.markdown(r"### Таблиця №. Коефіцієнт місцевого опору коліна трубопроводу $\xi_к$")
+with col_text1:
     st.markdown(r"**Таблиця**. Коефіцієнт місцевого опору коліна трубопроводу $\xi_к$")
         # Дані таблиці
     bend_data = {
