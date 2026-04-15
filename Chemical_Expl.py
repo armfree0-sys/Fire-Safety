@@ -1,40 +1,40 @@
->>> import streamlit as st
-... import math
-... import folium
-... from streamlit_folium import st_folium
-... import json
-... 
-... # --- КОНСТАНТИ (Методика 1000) ---
-... SUBSTANCES = {
-...     "Хлор": {"k1": 0.18, "k2": 0.052, "k7": 1.0, "density": 1.55},
-...     "Аміак": {"k1": 0.18, "k2": 0.025, "k7": 0.04, "density": 0.68}
-... }
-... 
-... ATMOSPHERE_STABILITY = {
-...     "Інверсія": {"k_atm": 1.0, "k_w": 0.2, "id": "inversion"},
-...     "Ізотермія": {"k_atm": 0.25, "k_w": 0.4, "id": "isothermy"},
-...     "Конвекція": {"k_atm": 0.1, "k_w": 0.8, "id": "convection"}
-... }
-... 
-... # --- ДОПОМІЖНІ ФУНКЦІЇ ---
-... def get_sector_angle(v_wind):
-...     if v_wind < 0.5: return 360
-...     if 0.5 <= v_wind < 1: return 180
-...     if 1 <= v_wind < 2: return 90
-...     return 45
-... 
-... def create_sector_geojson(lat, lon, radius_km, wind_azimuth, v_wind):
-...     # Напрямок поширення хмари протилежний напрямку вітру
-...     cloud_direction = (wind_azimuth + 180) % 360
-...     angle = get_sector_angle(v_wind)
-...     half_angle = angle / 2
-...     
-...     start_angle = cloud_direction - half_angle
-...     end_angle = cloud_direction + half_angle
-...     
-...     points = [[lon, lat]]
-...     num_points = 50
-...     for i in range(num_points + 1):
+import streamlit as st
+import math
+import folium
+from streamlit_folium import st_folium
+import json
+ 
+# --- КОНСТАНТИ (Методика 1000) ---
+SUBSTANCES = {
+     "Хлор": {"k1": 0.18, "k2": 0.052, "k7": 1.0, "density": 1.55},
+     "Аміак": {"k1": 0.18, "k2": 0.025, "k7": 0.04, "density": 0.68}
+ }
+ 
+ ATMOSPHERE_STABILITY = {
+     "Інверсія": {"k_atm": 1.0, "k_w": 0.2, "id": "inversion"},
+     "Ізотермія": {"k_atm": 0.25, "k_w": 0.4, "id": "isothermy"},
+     "Конвекція": {"k_atm": 0.1, "k_w": 0.8, "id": "convection"}
+ }
+ 
+ # --- ДОПОМІЖНІ ФУНКЦІЇ ---
+ def get_sector_angle(v_wind):
+     if v_wind < 0.5: return 360
+     if 0.5 <= v_wind < 1: return 180
+     if 1 <= v_wind < 2: return 90
+     return 45
+ 
+ def create_sector_geojson(lat, lon, radius_km, wind_azimuth, v_wind):
+     # Напрямок поширення хмари протилежний напрямку вітру
+     cloud_direction = (wind_azimuth + 180) % 360
+     angle = get_sector_angle(v_wind)
+     half_angle = angle / 2
+     
+     start_angle = cloud_direction - half_angle
+     end_angle = cloud_direction + half_angle
+     
+     points = [[lon, lat]]
+     num_points = 50
+     for i in range(num_points + 1):
         step_angle = math.radians(start_angle + (end_angle - start_angle) * i / num_points)
         # 1 градус широти ~ 111 км
         dx = (radius_km / 111.32) * math.sin(step_angle) / math.cos(math.radians(lat))
