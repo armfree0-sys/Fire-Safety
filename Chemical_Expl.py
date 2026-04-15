@@ -3,38 +3,38 @@ import math
 import folium
 from streamlit_folium import st_folium
 import json
- 
+
 # --- КОНСТАНТИ (Методика 1000) ---
 SUBSTANCES = {
-     "Хлор": {"k1": 0.18, "k2": 0.052, "k7": 1.0, "density": 1.55},
-     "Аміак": {"k1": 0.18, "k2": 0.025, "k7": 0.04, "density": 0.68}
- }
- 
- ATMOSPHERE_STABILITY = {
-     "Інверсія": {"k_atm": 1.0, "k_w": 0.2, "id": "inversion"},
-     "Ізотермія": {"k_atm": 0.25, "k_w": 0.4, "id": "isothermy"},
-     "Конвекція": {"k_atm": 0.1, "k_w": 0.8, "id": "convection"}
- }
- 
- # --- ДОПОМІЖНІ ФУНКЦІЇ ---
- def get_sector_angle(v_wind):
-     if v_wind < 0.5: return 360
-     if 0.5 <= v_wind < 1: return 180
-     if 1 <= v_wind < 2: return 90
-     return 45
- 
- def create_sector_geojson(lat, lon, radius_km, wind_azimuth, v_wind):
-     # Напрямок поширення хмари протилежний напрямку вітру
-     cloud_direction = (wind_azimuth + 180) % 360
-     angle = get_sector_angle(v_wind)
-     half_angle = angle / 2
-     
-     start_angle = cloud_direction - half_angle
-     end_angle = cloud_direction + half_angle
-     
-     points = [[lon, lat]]
-     num_points = 50
-     for i in range(num_points + 1):
+    "Хлор": {"k1": 0.18, "k2": 0.052, "k7": 1.0, "density": 1.55},
+    "Аміак": {"k1": 0.18, "k2": 0.025, "k7": 0.04, "density": 0.68}
+}
+
+ATMOSPHERE_STABILITY = {
+    "Інверсія": {"k_atm": 1.0, "k_w": 0.2},
+    "Ізотермія": {"k_atm": 0.25, "k_w": 0.4},
+    "Конвекція": {"k_atm": 0.1, "k_w": 0.8}
+}
+
+# --- ДОПОМІЖНІ ФУНКЦІЇ ---
+def get_sector_angle(v_wind):
+    if v_wind < 0.5: return 360
+    if 0.5 <= v_wind < 1: return 180
+    if 1 <= v_wind < 2: return 90
+    return 45
+
+def create_sector_geojson(lat, lon, radius_km, wind_azimuth, v_wind):
+    # Напрямок поширення хмари протилежний напрямку вітру
+    cloud_direction = (wind_azimuth + 180) % 360
+    angle = get_sector_angle(v_wind)
+    half_angle = angle / 2
+    
+    start_angle = cloud_direction - half_angle
+    end_angle = cloud_direction + half_angle
+    
+    points = [[lon, lat]]
+    num_points = 50
+    for i in range(num_points + 1):
         step_angle = math.radians(start_angle + (end_angle - start_angle) * i / num_points)
         # 1 градус широти ~ 111 км
         dx = (radius_km / 111.32) * math.sin(step_angle) / math.cos(math.radians(lat))
@@ -64,8 +64,8 @@ with st.sidebar:
     stability = st.selectbox("Стійкість атмосфери", list(ATMOSPHERE_STABILITY.keys()))
     
     st.header("Локація")
-    lat = st.number_input("Широта (Lat)", value=50.4501)
-    lon = st.number_input("Довгота (Lon)", value=30.5234)
+    lat = st.number_input("Широта (Lat)", value=49.4444) # Центр України (Черкаси) як приклад
+    lon = st.number_input("Довгота (Lon)", value=32.0597)
 
 # --- РОЗРАХУНОК ---
 sub = SUBSTANCES[sub_name]
@@ -80,29 +80,36 @@ g_final = g_base * atm["k_atm"]
 
 # --- КАРТА ---
 st.subheader("Карта прогнозованої зони")
-m = folium.Map(location=[lat, lon], zoom_start=12)
-folium.Marker([lat, lon], tooltip="Місце викиду", icon=folium.Icon(color='red')).add_to(m)
+m = folium.Map(location=[lat, lon], zoom_start=11)
+folium.Marker([lat, lon], tooltip="Місце викиду (джерело)", icon=folium.Icon(color='red', icon='info-sign')).add_to(m)
 
-# Створення геометрії
+# Створення геометрії та додавання на карту
 zone_geojson = create_sector_geojson(lat, lon, g_final, wind_dir, v_wind)
-folium.GeoJson(zone_geojson, style_function=lambda x: {'fillColor': 'orange', 'color': 'red'}).add_to(m)
+folium.GeoJson(
+    zone_geojson, 
+    style_function=lambda x: {'fillColor': 'orange', 'color': 'red', 'weight': 2, 'fillOpacity': 0.4}
+).add_to(m)
 
-# Відображення карти
+# Відображення карти у Streamlit
 st_folium(m, width=1200, height=500)
 
 # --- РЕЗУЛЬТАТИ ТА ЕКСПОРТ ---
+st.markdown("---")
 col1, col2 = st.columns(2)
+
 with col1:
+    st.write("### Результати розрахунку")
     st.metric("Глибина зони (Г)", f"{g_final:.2f} км")
     st.metric("Еквівалентна маса (Qe)", f"{qe:.2f} т")
 
 with col2:
-    st.write("### Експорт для Google Maps")
-    st.info("Завантажте файл та імпортуйте його в [Google My Maps](https://www.google.com/maps/d/)")
+    st.write("### Експорт для ГІС та Google Maps")
+    st.info("Завантажте файл та імпортуйте його в [Google My Maps](https://www.google.com/maps/d/) або QGIS.")
     
     geojson_str = json.dumps(zone_geojson)
     st.download_button(
         label="📥 Завантажити .geojson файл",
         data=geojson_str,
-        file_name="chemical_zone.geojson",
+        file_name="chemical_hazard_zone.geojson",
         mime="application/json"
+    )
