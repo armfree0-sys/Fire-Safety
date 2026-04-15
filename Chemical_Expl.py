@@ -66,6 +66,9 @@ with st.sidebar:
     st.header("Локація")
     lat = st.number_input("Широта (Lat)", value=49.4444) # Центр України (Черкаси) як приклад
     lon = st.number_input("Довгота (Lon)", value=32.0597)
+    
+    st.header("Налаштування карти")
+    map_type = st.radio("Відображення:", ["Карта Google", "Супутник Google", "OpenStreetMap"])
 
 # --- РОЗРАХУНОК ---
 sub = SUBSTANCES[sub_name]
@@ -80,7 +83,28 @@ g_final = g_base * atm["k_atm"]
 
 # --- КАРТА ---
 st.subheader("Карта прогнозованої зони")
-m = folium.Map(location=[lat, lon], zoom_start=11)
+
+# Словник з посиланнями на тайли Google Maps
+tiles_dict = {
+    "Карта Google": "https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}",
+    "Супутник Google": "https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}", # lyrs=y - це гібрид (супутник + назви вулиць)
+    "OpenStreetMap": "OpenStreetMap"
+}
+
+attrs = {
+    "Карта Google": "Google Maps",
+    "Супутник Google": "Google Maps Satellite",
+    "OpenStreetMap": "OpenStreetMap"
+}
+
+# Створюємо карту з обраним джерелом (підкладкою)
+m = folium.Map(
+    location=[lat, lon], 
+    zoom_start=12,
+    tiles=tiles_dict[map_type],
+    attr=attrs[map_type]
+)
+
 folium.Marker([lat, lon], tooltip="Місце викиду (джерело)", icon=folium.Icon(color='red', icon='info-sign')).add_to(m)
 
 # Створення геометрії та додавання на карту
