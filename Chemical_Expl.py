@@ -5,10 +5,10 @@ from streamlit_folium import st_folium
 import json
 
 # 1. Ініціалізація сесії (виконується один раз при першому запуску)
-if 'map_center' not in st.session_state:
-    st.session_state.map_center = [49.4444, 32.0597] # Початкова точка
-if 'map_zoom' not in st.session_state:
-    st.session_state.map_zoom = 12
+if 'spill_lat' not in st.session_state:
+    st.session_state.spill_lat = 49.4444
+if 'spill_lon' not in st.session_state:
+    st.session_state.spill_lon = 32.0597
 
 # --- КОНСТАНТИ (Методика 1000) ---
 SUBSTANCES = {
@@ -69,9 +69,13 @@ with st.sidebar:
     wind_dir = st.slider("Напрямок вітру (звідки дме), градуси", 0, 360, 0)
     stability = st.selectbox("Стійкість атмосфери", list(ATMOSPHERE_STABILITY.keys()))
     
-    st.header("Локація")
-    lat = st.number_input("Широта (Lat)", value=49.4444) # Центр України (Черкаси) як приклад
-    lon = st.number_input("Довгота (Lon)", value=32.0597)
+    st.header("Локація (клікніть на карту)")
+    # Якщо користувач введе дані вручну, вони оновлять сесію
+    st.session_state.spill_lat = st.number_input("Широта (Lat)", value=st.session_state.spill_lat, format="%.6f")
+    st.session_state.spill_lon = st.number_input("Довгота (Lon)", value=st.session_state.spill_lon, format="%.6f")
+    # Використовуємо координати із сесії
+    lat = st.session_state.spill_lat
+    lon = st.session_state.spill_lon
     
     st.header("Налаштування карти")
     map_type = st.radio("Відображення:", ["Карта Google", "Супутник Google", "OpenStreetMap"])
@@ -110,6 +114,8 @@ m = folium.Map(
     tiles="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}",
     attr="Google Maps Satellite"
 )
+m = folium.Map(location=[lat, lon], zoom_start=12)
+folium.Marker([lat, lon], tooltip="Місце викиду (можна змінити кліком)").add_to(m)
 
 folium.Marker([lat, lon], tooltip="Місце викиду (джерело)", icon=folium.Icon(color='red', icon='info-sign')).add_to(m)
 
