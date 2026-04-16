@@ -4,12 +4,6 @@ import folium
 from streamlit_folium import st_folium
 import json
 
-# 1. Ініціалізація сесії (виконується один раз при першому запуску)
-if 'spill_lat' not in st.session_state:
-    st.session_state.spill_lat = 49.4444
-if 'spill_lon' not in st.session_state:
-    st.session_state.spill_lon = 32.0597
-
 # --- КОНСТАНТИ (Методика 1000) ---
 SUBSTANCES = {
     "Хлор": {"k1": 0.18, "k2": 0.052, "k7": 1.0, "density": 1.55},
@@ -58,6 +52,14 @@ def create_sector_geojson(lat, lon, radius_km, wind_azimuth, v_wind):
 st.set_page_config(page_title="Калькулятор НХР №1000", layout="wide")
 st.title("🛡️ Прогнозування зони хімічного зараження (Наказ №1000)")
 
+# 1. Ініціалізація змінних у сесії для координат та зуму
+if 'spill_lat' not in st.session_state:
+    st.session_state.spill_lat = 49.4444  # Черкаси як приклад
+if 'spill_lon' not in st.session_state:
+    st.session_state.spill_lon = 32.0597
+if 'map_zoom' not in st.session_state:
+    st.session_state.map_zoom = 12
+
 with st.sidebar:
     st.header("Параметри аварії")
     sub_name = st.selectbox("Речовина", list(SUBSTANCES.keys()))
@@ -70,17 +72,18 @@ with st.sidebar:
     stability = st.selectbox("Стійкість атмосфери", list(ATMOSPHERE_STABILITY.keys()))
     
     st.header("Локація (клікніть на карту)")
-    # Якщо користувач введе дані вручну, вони оновлять сесію
+    # Якщо користувач вводить дані вручну, вони оновлять session_state
     st.session_state.spill_lat = st.number_input("Широта (Lat)", value=st.session_state.spill_lat, format="%.6f")
     st.session_state.spill_lon = st.number_input("Довгота (Lon)", value=st.session_state.spill_lon, format="%.6f")
-    # Використовуємо координати із сесії
-    lat = st.session_state.spill_lat
-    lon = st.session_state.spill_lon
     
     st.header("Налаштування карти")
     map_type = st.radio("Відображення:", ["Карта Google", "Супутник Google", "OpenStreetMap"])
 
 # --- РОЗРАХУНОК ---
+# Використовуємо координати із сесії
+lat = st.session_state.spill_lat
+lon = st.session_state.spill_lon
+
 sub = SUBSTANCES[sub_name]
 atm = ATMOSPHERE_STABILITY[stability]
 h = 0.05 if spill == "Вільний" else 0.5
@@ -94,10 +97,10 @@ g_final = g_base * atm["k_atm"]
 # --- КАРТА ---
 st.subheader("Карта прогнозованої зони")
 
-# Словник з посиланнями на тайли Google Maps
+# Словник з посиланнями на тайли карт
 tiles_dict = {
     "Карта Google": "https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}",
-    "Супутник Google": "https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}", # lyrs=y - це гібрид (супутник + назви вулиць)
+    "Супутник Google": "https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}",
     "OpenStreetMap": "OpenStreetMap"
 }
 
@@ -107,33 +110,47 @@ attrs = {
     "OpenStreetMap": "OpenStreetMap"
 }
 
-# 2. Використання значень із сесії для створення карти
+# Створюємо карту зі збереженими координатами та зумом
 m = folium.Map(
-    location=st.session_state.map_center,
+    location=[lat, lon], 
     zoom_start=st.session_state.map_zoom,
-    tiles="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}",
-    attr="Google Maps Satellite"
+    tiles=tiles_dict[map_type],
+    attr=attrs[map_type]
 )
-m = folium.Map(location=[lat, lon], zoom_start=12)
-folium.Marker([lat, lon], tooltip="Місце викиду (можна змінити кліком)").add_to(m)
 
-folium.Marker([lat, lon], tooltip="Місце викиду (джерело)", icon=folium.Icon(color='red', icon='info-sign')).add_to(m)
+folium.Marker([lat, lon], tooltip="Місце викиду (можна змінити кліком по карті)", icon=folium.Icon(color='red', icon='info-sign')).add_to(m)
 
-# Створення геометрії та додавання на карту
+# Створення геометрії сектора та додавання на карту
 zone_geojson = create_sector_geojson(lat, lon, g_final, wind_dir, v_wind)
 folium.GeoJson(
     zone_geojson, 
     style_function=lambda x: {'fillColor': 'orange', 'color': 'red', 'weight': 2, 'fillOpacity': 0.4}
 ).add_to(m)
 
-# 3. Виклик st_folium та захоплення вихідних даних
+# Відображення карти у Streamlit та перехоплення взаємодії
 map_data = st_folium(m, width=1200, height=500, key="hazard_map")
 
-# 4. Оновлення сесії новими даними з карти (якщо користувач її рухав або зумив)
-if map_data['center'] is not None:
-    st.session_state.map_center = [map_data['center']['lat'], map_data['center']['lng']]
-if map_data['zoom'] is not None:
-    st.session_state.map_zoom = map_data['zoom']
+# --- ОБРОБКА КЛІКУ ТА ЗУМУ ---
+if map_data:
+    needs_rerun = False
+    
+    # 1. Перевірка на клік по карті
+    if map_data.get("last_clicked"):
+        clicked_lat = map_data["last_clicked"]["lat"]
+        clicked_lon = map_data["last_clicked"]["lng"]
+        
+        # Якщо координати змінилися — оновлюємо сесію
+        if clicked_lat != st.session_state.spill_lat or clicked_lon != st.session_state.spill_lon:
+            st.session_state.spill_lat = clicked_lat
+            st.session_state.spill_lon = clicked_lon
+            needs_rerun = True
+            
+    # 2. Збереження стану зуму, щоб карта не "стрибала"
+    if map_data.get("zoom") and map_data["zoom"] != st.session_state.map_zoom:
+        st.session_state.map_zoom = map_data["zoom"]
+        
+    if needs_rerun:
+        st.rerun()  # Миттєво оновлює додаток після кліку
 
 # --- РЕЗУЛЬТАТИ ТА ЕКСПОРТ ---
 st.markdown("---")
@@ -146,7 +163,7 @@ with col1:
 
 with col2:
     st.write("### Експорт для ГІС та Google Maps")
-    st.info("Завантажте файл та імпортуйте його в [Google My Maps](https://www.google.com/maps/d/) або QGIS.")
+    st.info("Завантажте файл та імпортуйте його в Google My Maps або QGIS.")
     
     geojson_str = json.dumps(zone_geojson)
     st.download_button(
