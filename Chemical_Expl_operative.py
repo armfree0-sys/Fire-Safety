@@ -150,15 +150,20 @@ elif app_mode == "📅 Прогнозування (Ручний)":
     else:
         col3.success(f"Об'єкт поза зоною ураження")
 
-    # Карта
-    m = folium.Map(location=[st.session_state.lat, st.session_state.lon], zoom_start=st.session_state.zoom, tiles="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}", attr="Google")
-    folium.Marker([st.session_state.lat, st.session_state.lon], tooltip="Джерело викиду (Змінити кліком)").add_to(m)
+   # Створення карти Google з УКРАЇНСЬКОЮ мовою (hl=uk)
+    m = folium.Map(
+        location=[st.session_state.lat, st.session_state.lon], 
+        zoom_start=st.session_state.zoom,
+        tiles="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}&hl=uk",
+        attr="Google Maps Ukrainian"
+    )
+    folium.Marker([st.session_state.lat, st.session_state.lon], tooltip="Джерело").add_to(m)
     
     zone_geojson = create_sector_geojson(st.session_state.lat, st.session_state.lon, g_final, wind_dir, v_wind)
     folium.GeoJson(zone_geojson, style_function=lambda x: {'fillColor': 'orange', 'color': 'red', 'weight': 2, 'fillOpacity': 0.4}).add_to(m)
     
     map_data = st_folium(m, width=1200, height=500, key="map_manual")
-    if map_data.get("last_clicked"):
+    if map_data and map_data.get("last_clicked"):
         st.session_state.lat = map_data["last_clicked"]["lat"]
         st.session_state.lon = map_data["last_clicked"]["lng"]
         st.rerun()
