@@ -5,6 +5,12 @@ from streamlit_folium import st_folium
 import json
 import requests
 
+# Ініціалізація координат, якщо вони ще не задані
+if 'spill_lat' not in st.session_state:
+    st.session_state.spill_lat = 49.4444
+if 'spill_lon' not in st.session_state:
+    st.session_state.spill_lon = 32.0597
+
 # --- 1. ДОВІДКОВІ ДАНІ ТА КОНСТАНТИ ---
 SUBSTANCES = {
     "Хлор": {"k1": 0.18, "k2": 0.052, "k7": 1.0, "density": 1.55},
@@ -166,7 +172,12 @@ elif app_mode == "🚨 Оперативна обстановка":
         q_tons = st.number_input("Кількість (т)", 0.1, value=10.0)
         spill = st.radio("Тип розливу", ["Вільний", "У піддон"])
         target_dist = st.number_input("Відстань до об'єкта (км)", 0.1, value=1.5)
-
+    
+    st.header("Локація (клікніть на карту)")
+        # Поля підтягують значення з пам'яті сесії
+        st.session_state.spill_lat = st.number_input("Широта (Lat)", value=st.session_state.spill_lat, format="%.6f")
+        st.session_state.spill_lon = st.number_input("Довгота (Lon)", value=st.session_state.spill_lon, format="%.6f")
+    
     if st.button("🔄 Отримати актуальну погоду та розрахувати", type="primary"):
         weather_result = get_realtime_weather(st.session_state.lat, st.session_state.lon)
         if weather_result["success"]:
