@@ -167,55 +167,83 @@ elif app_mode == "📅 Прогнозування (Ручний)":
 elif app_mode == "🚨 Оперативна обстановка":
     st.title("🚨 Оперативна обстановка (Реальний час)")
     
+    # Створюємо змінну в сесії для збереження погоди, якщо її ще немає
+    if 'current_weather' not in st.session_state:
+        st.session_state.current_weather = None
+
     with st.sidebar:
         st.header("Параметри аварії")
         sub_name = st.selectbox("Речовина", list(SUBSTANCES.keys()))
         q_tons = st.number_input("Кількість (т)", 0.1, value=10.0)
         spill = st.radio("Розлив", ["Вільний", "У піддон"])
-        target_dist = st.number_input("Відстань до населеного пункту (км)", min_value=0.1, value=1.5, step=0.1)
+        target_dist = st.number_input("Відстань до об'єкта (км)", min_value=0.1, value=1.5, step=0.1)
         st.info("Погодні умови будуть завантажені автоматично.")
 
+    # 1. Кнопка лише завантажує дані і зберігає їх у session_state
     if st.button("🔄 Отримати актуальну погоду та розрахувати", type="primary"):
         with st.spinner("Зв'язок з метеосервером..."):
-            weather = get_realtime_weather(st.session_state.lat, st.session_state.lon)
-            
-        if weather["success"]:
-            v_wind_real = weather["wind"]
-            dir_real = weather["dir"]
-            stab_real = weather["stability"]
-            
-            st.success(f"📍 Погоду оновлено! Вітер: {v_wind_real:.1f} м/с, Напрямок: {dir_real}°, СВША: {stab_real}")
-            
-            # Фактична зона
-            g_real, _ = calculate_zone(sub_name, q_tons, spill, v_wind_real, stab_real)
-            t_arrival = calculate_time_to_target(target_dist, v_wind_real)
-            
-            # Найгірша зона (Інверсія, 1 м/с)
-            g_worst, _ = calculate_zone(sub_name, q_tons, spill, 1.0, "Інверсія")
-            
-            col1, col2, col3 = st.columns(3)
-            col1.metric("Фактична глибина зараз", f"{g_real:.2f} км")
-            col2.metric("Максимум (найгірші умови)", f"{g_worst:.2f} км")
-            
-            if target_dist <= g_real:
-                col3.error(f"🚨 Час підходу хмари: {int(t_arrival)} хв")
+            weather_result = get_realtime_weather(st.session_state.lat, st.session_state.lon)
+            if weather_result["success"]:
+                st.session_state.current_weather = weather_result
             else:
-                col3.success(f"Об'єкт ({target_dist} км) наразі в безпеці")
-                
-            # Відмальовування карти
-            m = folium.Map(location=[st.session_state.lat, st.session_state.lon], zoom_start=st.session_state.zoom, tiles="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}", attr="Google")
-            folium.Marker([st.session_state.lat, st.session_state.lon], tooltip="Джерело викиду").add_to(m)
-            
-            # Сірий сектор (найгірший сценарій - 360 градусів)
-            worst_geojson = create_sector_geojson(st.session_state.lat, st.session_state.lon, g_worst, 0, 0.1)
-            folium.GeoJson(worst_geojson, style_function=lambda x: {'fillColor': 'gray', 'color': 'gray', 'weight': 1, 'fillOpacity': 0.2}).add_to(m)
-            
-            # Червоний сектор (фактична ситуація)
-            real_geojson = create_sector_geojson(st.session_state.lat, st.session_state.lon, g_real, dir_real, v_wind_real)
-            folium.GeoJson(real_geojson, style_function=lambda x: {'fillColor': 'red', 'color': 'red', 'weight': 2, 'fillOpacity': 0.5}).add_to(m)
-            
-            st_folium(m, width=1200, height=500, key="map_op")
+                st.error("Помилка зв'язку з метеосервером. Перейдіть у ручний режим.")
+                st.session_state.current_weather = None
+
+    # 2. Якщо в пам'яті Є збережена погода — малюємо результати
+    if st.session_state.current_weather is not None:
+        weather = st.session_state.current_weather
+        
+        v_wind_real = weather["wind"]
+        dir_real = weather["dir"]
+        stab_real = weather["stability"]
+        
+        st.success(f"📍 Погоду оновлено! Вітер: {v_wind_real:.1f} м/с, Напрямок: {dir_real}°, СВША: {stab_real}")
+        
+        # Фактична зона
+        g_real, _ = calculate_zone(sub_name, q_tons, spill, v_wind_real, stab_real)
+        t_arrival = calculate_time_to_target(target_dist, v_wind_real)
+        
+        # Найгірша зона (Інверсія, 1 м/с) для порівняння
+        g_worst, _ = calculate_zone(sub_name, q_tons, spill, 1.0, "Інверсія")
+        
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Фактична глибина зараз", f"{g_real:.2f} км")
+        col2.metric("Максимум (найгірші умови)", f"{g_worst:.2f} км")
+        
+        if target_dist <= g_real:
+            col3.error(f"🚨 Час підходу хмари: {int(t_arrival)} хв")
         else:
-            st.error("Помилка зв'язку з метеосервером. Перейдіть у ручний режим.")
+            col3.success(f"Об'єкт ({target_dist} км) наразі в безпеці")
+            
+        # Відмальовування карти
+        m = folium.Map(
+            location=[st.session_state.lat, st.session_state.lon], 
+            zoom_start=st.session_state.zoom, 
+            tiles="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}", 
+            attr="Google"
+        )
+        folium.Marker([st.session_state.lat, st.session_state.lon], tooltip="Джерело викиду").add_to(m)
+        
+        # Сірий сектор (найгірший сценарій)
+        worst_geojson = create_sector_geojson(st.session_state.lat, st.session_state.lon, g_worst, 0, 0.1)
+        folium.GeoJson(worst_geojson, style_function=lambda x: {'fillColor': 'gray', 'color': 'gray', 'weight': 1, 'fillOpacity': 0.2}).add_to(m)
+        
+        # Червоний сектор (фактична ситуація)
+        real_geojson = create_sector_geojson(st.session_state.lat, st.session_state.lon, g_real, dir_real, v_wind_real)
+        folium.GeoJson(real_geojson, style_function=lambda x: {'fillColor': 'red', 'color': 'red', 'weight': 2, 'fillOpacity': 0.5}).add_to(m)
+        
+        map_data = st_folium(m, width=1200, height=500, key="map_op")
+        
+        # Оновлення координат, якщо користувач клікне по карті
+        if map_data and map_data.get("last_clicked"):
+            clicked_lat = map_data["last_clicked"]["lat"]
+            clicked_lon = map_data["last_clicked"]["lng"]
+            if clicked_lat != st.session_state.lat or clicked_lon != st.session_state.lon:
+                st.session_state.lat = clicked_lat
+                st.session_state.lon = clicked_lon
+                # Якщо змінили координати, скидаємо стару погоду, щоб користувач натиснув кнопку знову
+                st.session_state.current_weather = None 
+                st.rerun()
+
     else:
         st.info("Натисніть кнопку вище, щоб завантажити погоду та показати зону на карті.")
