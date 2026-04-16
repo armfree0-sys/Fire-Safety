@@ -157,11 +157,18 @@ elif app_mode == "📅 Прогнозування (Ручний)":
     zone_geojson = create_sector_geojson(st.session_state.lat, st.session_state.lon, g_final, wind_dir, v_wind)
     folium.GeoJson(zone_geojson, style_function=lambda x: {'fillColor': 'orange', 'color': 'red', 'weight': 2, 'fillOpacity': 0.4}).add_to(m)
     
-    map_data = st_folium(m, width=1200, height=500, key="map_manual")
+    map_data = st_folium(m, width=1200, height=500, key="hazard_map")
+
+    # Логіка перехоплення кліку
     if map_data and map_data.get("last_clicked"):
-        st.session_state.lat = map_data["last_clicked"]["lat"]
-        st.session_state.lon = map_data["last_clicked"]["lng"]
-        st.rerun()
+        clicked_lat = map_data["last_clicked"]["lat"]
+        clicked_lon = map_data["last_clicked"]["lng"]
+    
+    # Якщо координати кліку відрізняються від тих, що в пам'яті — оновлюємо і перезапускаємо
+    if clicked_lat != st.session_state.spill_lat or clicked_lon != st.session_state.spill_lon:
+        st.session_state.spill_lat = clicked_lat
+        st.session_state.spill_lon = clicked_lon
+        st.rerun() # Це змусить Streamlit миттєво перемалювати сектор на новому місці
 
 # --- РЕЖИМ 3: ОПЕРАТИВНА ОБСТАНОВКА ---
 elif app_mode == "🚨 Оперативна обстановка":
