@@ -176,3 +176,66 @@ elif app_mode == "🚨 Оперативна обстановка":
     st.title("🚨 Моніторинг оперативної обстановки")
     
     with st.sidebar:
+        st.header("Локація (клікніть на карту)")
+        st.session_state.spill_lat = st.number_input("Широта (Lat)", value=st.session_state.spill_lat, format="%.6f")
+        st.session_state.spill_lon = st.number_input("Довгота (Lon)", value=st.session_state.spill_lon, format="%.6f")
+        
+        st.header("Параметри аварії")
+        sub_name = st.selectbox("Речовина", list(SUBSTANCES.keys()))
+        q_tons = st.number_input("Кількість (т)", 0.1, value=10.0)
+        spill = st.radio("Тип розливу", ["Вільний", "У піддон"])
+        target_dist = st.number_input("Відстань до об'єкта (км)", 0.1, value=1.5)
+
+    if st.button("🔄 Отримати актуальну погоду та розрахувати", type="primary"):
+        with st.spinner("Отримання метеоданих..."):
+            weather_result = get_realtime_weather(st.session_state.spill_lat, st.session_state.spill_lon)
+            if weather_result["success"]:
+                st.session_state.current_weather = weather_result
+            else:
+                st.error("Помилка зв'язку з метеосервером.")
+
+    if st.session_state.current_weather:
+        w = st.session_state.current_weather
+        st.success(f"Погода за координатами: {w['wind']:.1f} м/с, Азимут: {w['dir']}°, СВША: {w['stability']}")
+        
+        g_real, _ = calculate_zone(sub_name, q_tons, spill, w['wind'], w['stability'])
+        g_worst, _ = calculate_zone(sub_name, q_tons, spill, 1.0, "Інверсія")
+        t_arrival = calculate_time_to_target(target_dist, w['wind'])
+        
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Фактична зона зараз", f"{g_real:.2f} км")
+        col2.metric("Найгірший сценарій", f"{g_worst:.2f} км")
+        if target_dist <= g_real:
+            col3.error(f"🚨 ПРИБУТТЯ ХМАРИ: {int(t_arrival)} хв")
+        else:
+            col3.success("Об'єкт у безпеці")
+
+        m = folium.Map(
+            location=[st.session_state.spill_lat, st.session_state.spill_lon], 
+            zoom_start=st.session_state.map_zoom,
+            tiles="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}&hl=uk",
+            attr="Google Maps"
+        )
+        folium.Marker([st.session_state.spill_lat, st.session_state.spill_lon], tooltip="Джерело (клікніть щоб змінити)").add_to(m)
+        
+        folium.GeoJson(create_sector_geojson(st.session_state.spill_lat, st.session_state.spill_lon, g_worst, 0, 0.1), 
+                       style_function=lambda x: {'fillColor': 'gray', 'color': 'gray', 'fillOpacity': 0.1}).add_to(m)
+        folium.GeoJson(create_sector_geojson(st.session_state.spill_lat, st.session_state.spill_lon, g_real, w['dir'], w['wind']), 
+                       style_function=lambda x: {'fillColor': 'red', 'color': 'red', 'weight': 2, 'fillOpacity': 0.5}).add_to(m)
+        
+        map_data = st_folium(m, width=1200, height=500, key="map_op")
+        
+        # Обробка кліку та збереження зуму
+        if map_data:
+            if map_data.get("zoom"):
+                st.session_state.map_zoom = map_data["zoom"]
+            if map_data.get("last_clicked"):
+                clicked_lat = map_data["last_clicked"]["lat"]
+                clicked_lon = map_data["last_clicked"]["lng"]
+                if clicked_lat != st.session_state.spill_lat or clicked_lon != st.session_state.spill_lon:
+                    st.session_state.spill_lat = clicked_lat
+                    st.session_state.spill_lon = clicked_lon
+                    st.session_state.current_weather = None # Скидаємо погоду для нової точки
+                    st.rerun()
+    else:
+        st.info("Натисніть кнопку вище, щоб завантажити погоду та показати зону на карті.")
