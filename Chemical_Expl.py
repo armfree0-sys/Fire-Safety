@@ -4,6 +4,12 @@ import folium
 from streamlit_folium import st_folium
 import json
 
+# 1. Ініціалізація сесії (виконується один раз при першому запуску)
+if 'map_center' not in st.session_state:
+    st.session_state.map_center = [49.4444, 32.0597] # Початкова точка
+if 'map_zoom' not in st.session_state:
+    st.session_state.map_zoom = 12
+
 # --- КОНСТАНТИ (Методика 1000) ---
 SUBSTANCES = {
     "Хлор": {"k1": 0.18, "k2": 0.052, "k7": 1.0, "density": 1.55},
@@ -97,12 +103,12 @@ attrs = {
     "OpenStreetMap": "OpenStreetMap"
 }
 
-# Створюємо карту з обраним джерелом (підкладкою)
+# 2. Використання значень із сесії для створення карти
 m = folium.Map(
-    location=[lat, lon], 
-    zoom_start=12,
-    tiles=tiles_dict[map_type],
-    attr=attrs[map_type]
+    location=st.session_state.map_center,
+    zoom_start=st.session_state.map_zoom,
+    tiles="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}",
+    attr="Google Maps Satellite"
 )
 
 folium.Marker([lat, lon], tooltip="Місце викиду (джерело)", icon=folium.Icon(color='red', icon='info-sign')).add_to(m)
@@ -114,8 +120,14 @@ folium.GeoJson(
     style_function=lambda x: {'fillColor': 'orange', 'color': 'red', 'weight': 2, 'fillOpacity': 0.4}
 ).add_to(m)
 
-# Відображення карти у Streamlit
-st_folium(m, width=1200, height=500)
+# 3. Виклик st_folium та захоплення вихідних даних
+map_data = st_folium(m, width=1200, height=500, key="hazard_map")
+
+# 4. Оновлення сесії новими даними з карти (якщо користувач її рухав або зумив)
+if map_data['center'] is not None:
+    st.session_state.map_center = [map_data['center']['lat'], map_data['center']['lng']]
+if map_data['zoom'] is not None:
+    st.session_state.map_zoom = map_data['zoom']
 
 # --- РЕЗУЛЬТАТИ ТА ЕКСПОРТ ---
 st.markdown("---")
