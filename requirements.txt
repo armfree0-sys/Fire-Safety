@@ -6,3 +6,4 @@ folium
 streamlit-folium
 scipy
 streamlit-authenticator
+requests
