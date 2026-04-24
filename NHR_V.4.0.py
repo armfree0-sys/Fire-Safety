@@ -2,7 +2,6 @@ import streamlit as st
 import math
 import folium
 from streamlit_folium import st_folium
-import json
 import requests
 
 # --- 1. КОНСТАНТИ ТА ДАНІ ---
@@ -57,32 +56,25 @@ def create_isochrone_geojsons(lat, lon, max_radius_km, wind_azimuth, v_wind):
     angle = get_sector_angle(v_wind)
     half_a = angle / 2
     
-    # Захист від ділення на нуль
     v_wind_safe = max(v_wind, 0.1)
-    
-    # Максимальний час добігання хмари до кінця зони (у хвилинах)
     t_max = (max_radius_km * 1000) / (v_wind_safe * 60)
     
-    # Базові часові межі зон
     intervals = [10, 30, 60]
-    
-    # Створюємо список часу для малювання (тільки ті межі, куди дістає хмара)
     times_to_draw = [t_max] + [t for t in intervals if t < t_max]
-    times_to_draw.sort(reverse=True) # Спочатку малюємо найбільші, щоб вони були фоном
+    times_to_draw.sort(reverse=True) 
     
     for t in times_to_draw:
-        # Призначаємо кольори за вашою логікою
         if t <= 10:
-            color = "#FF0000" # Червоний
+            color = "#FF0000"
             label = "до 10 хв (Критична зона)"
         elif t <= 30:
-            color = "#FF8C00" # Помаранчевий
+            color = "#FF8C00"
             label = "10-30 хв (Екстрена евакуація)"
         elif t <= 60:
-            color = "#FFA07A" # Блідо-помаранчевий
+            color = "#FFA07A"
             label = "30-60 хв (Планова евакуація)"
         else:
-            color = "#FFD700" # Жовтий
+            color = "#FFD700"
             label = "більше 1 год (Моніторинг)"
             
         r_km = (t * 60 * v_wind_safe) / 1000
@@ -128,7 +120,7 @@ def find_settlements(lat, lon, radius_km, wind_dir, v_wind):
     except: return []
 
 # --- 3. UI ТА СТИЛІЗАЦІЯ ---
-st.set_page_config(page_title="НХР V.4.1 Навчальний", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="НХР V.4.2", layout="wide", initial_sidebar_state="expanded")
 
 st.markdown("""
     <style>
@@ -148,6 +140,12 @@ st.markdown("""
         margin-bottom: 8px;
         border-left: 3px solid #f63366;
     }
+    .legend-box {
+        padding: 10px;
+        border-radius: 5px;
+        background-color: #1E1E1E;
+        border: 1px solid #333;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -158,9 +156,8 @@ if 'zoom' not in st.session_state: st.session_state.zoom = 11
 
 # --- SIDEBAR ---
 with st.sidebar:
-    st.title("НХР V.4.1 (Чиста Карта)")
+    st.title("НХР V.4.2 (Ізохрони)")
     
-    # ПЕРЕМИКАЧ АНАЛІТИКИ
     show_analytics = st.toggle("📊 Показати панель аналітики", value=False)
     st.markdown("---")
     
@@ -171,8 +168,6 @@ with st.sidebar:
         qty = st.number_input("Кількість (т)", 0.1, 1000.0, 10.0)
         spill = st.radio("Тип розливу", ["Вільний", "У піддон"], horizontal=True)
         st.caption("Координати задаються кліком на карті.")
-        st.text(f"Lat: {st.session_state.lat:.4f}")
-        st.text(f"Lon: {st.session_state.lon:.4f}")
 
     with tabs[1]:
         if st.button("🔄 Оновити з супутника", type="primary", use_container_width=True):
@@ -189,25 +184,23 @@ with st.sidebar:
             w_dir = st.slider("Напрямок (°)", 0, 360, 0)
             stab = st.selectbox("СВША", list(ATMOSPHERE_STABILITY.keys()))
 
-# --- MAIN DASHBOARD (ДИНАМІЧНИЙ МАКЕТ) ---
+# --- MAIN DASHBOARD ---
 g_final, qe = calculate_zone(sub, qty, spill, v_wind, stab)
 
-# ЛОГІКА "ЧИСТОЇ" КАРТИ
 if show_analytics:
     col_map, col_info = st.columns([7, 3])
 else:
-    col_map = st.container() # Якщо вимкнено, карта займає весь екран (100%)
+    col_map = st.container()
     col_info = None
 
-# ВІДОБРАЖЕННЯ КАРТИ (завжди)
 with col_map:
-    # Заголовок карти з базовою інформацією, щоб бачити результати навіть із закритою панеллю
-    st.markdown(f"### 🗺️ Оперативна карта | Глибина зони: {g_final:.2f} км")
+    st.markdown(f"### 🗺️ Оперативна карта | Глибина: {g_final:.2f} км")
     
     m = folium.Map(location=[st.session_state.lat, st.session_state.lon], zoom_start=st.session_state.zoom, 
                    tiles="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}&hl=uk", attr="Google")
     
-geojson_data = create_isochrone_geojsons(st.session_state.lat, st.session_state.lon, g_final, w_dir, v_wind)
+    geojson_data = create_isochrone_geojsons(st.session_state.lat, st.session_state.lon, g_final, w_dir, v_wind)
+    
     folium.GeoJson(
         geojson_data, 
         style_function=lambda feature: {
@@ -218,16 +211,36 @@ geojson_data = create_isochrone_geojsons(st.session_state.lat, st.session_state.
         },
         tooltip=folium.GeoJsonTooltip(fields=['time_label'], aliases=['Зона:'], style="font-weight: bold; background-color: #333; color: white;")
     ).add_to(m)
+    
+    folium.Marker([st.session_state.lat, st.session_state.lon], icon=folium.Icon(color='red', icon='info-sign')).add_to(m)
+    
+    map_res = st_folium(m, use_container_width=True, height=650, key="v4_map")
+    
+    if map_res:
+        if map_res.get("last_clicked"):
+            nl, nn = map_res["last_clicked"]["lat"], map_res["last_clicked"]["lng"]
+            if nl != st.session_state.lat:
+                st.session_state.lat, st.session_state.lon = nl, nn
+                st.rerun()
+        if map_res.get("zoom"): st.session_state.zoom = map_res["zoom"]
 
-# ВІДОБРАЖЕННЯ АНАЛІТИКИ (тільки якщо увімкнено)
 if col_info is not None:
     with col_info:
         st.markdown("### 📊 Аналітика")
         st.metric("Глибина зони (Г)", f"{g_final:.2f} км")
-        st.metric("Еквівалентна маса", f"{qe:.2f} т")
+        
+        st.markdown("#### ⏱️ Легенда часу")
+        st.markdown("""
+        <div class="legend-box">
+            <span style="color:#FF0000; font-size:18px;">■</span> <b>до 10 хв</b> (Укриття)<br>
+            <span style="color:#FF8C00; font-size:18px;">■</span> <b>10-30 хв</b> (Екстрена евак.)<br>
+            <span style="color:#FFA07A; font-size:18px;">■</span> <b>30-60 хв</b> (Планова евак.)<br>
+            <span style="color:#FFD700; font-size:18px;">■</span> <b>> 1 год</b> (Моніторинг)
+        </div>
+        """, unsafe_allow_html=True)
         
         st.markdown("---")
-        st.markdown("#### 🏘️ Населені пункти в зоні")
+        st.markdown("#### 🏘️ Загроза населенню")
         
         if st.button("🔍 Проаналізувати місцевість", use_container_width=True):
             with st.spinner("Пошук об'єктів..."):
@@ -240,11 +253,3 @@ if col_info is not None:
                         </div>""", unsafe_allow_html=True)
                 else:
                     st.success("✅ Загроз населеним пунктам не виявлено")
-        
-        st.markdown("---")
-        if g_final > 5:
-            st.error("🚨 РІВЕНЬ ЗАГРОЗИ: ВИСОКИЙ")
-        elif g_final > 2:
-            st.warning("⚠️ РІВЕНЬ ЗАГРОЗИ: СЕРЕДНІЙ")
-        else:
-            st.info("ℹ️ РІВЕНЬ ЗАГРОЗИ: ЛОКАЛЬНИЙ")
