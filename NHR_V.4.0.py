@@ -208,7 +208,6 @@ with col_map:
                    tiles="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}&hl=uk", attr="Google")
     
 geojson_data = create_isochrone_geojsons(st.session_state.lat, st.session_state.lon, g_final, w_dir, v_wind)
-    
     folium.GeoJson(
         geojson_data, 
         style_function=lambda feature: {
