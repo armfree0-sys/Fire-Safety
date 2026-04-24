@@ -51,18 +51,59 @@ def get_sector_angle(v_wind):
     if v_wind < 2: return 90
     return 45
 
-def create_sector_geojson(lat, lon, radius_km, wind_azimuth, v_wind):
+def create_isochrone_geojsons(lat, lon, max_radius_km, wind_azimuth, v_wind):
+    features = []
     cloud_dir = (wind_azimuth + 180) % 360
     angle = get_sector_angle(v_wind)
     half_a = angle / 2
-    points = [[lon, lat]]
-    for i in range(51):
-        step_a = math.radians(cloud_dir - half_a + (angle * i / 50))
-        dx = (radius_km / 111.32) * math.sin(step_a) / math.cos(math.radians(lat))
-        dy = (radius_km / 110.57) * math.cos(step_a)
-        points.append([lon + dx, lat + dy])
-    points.append([lon, lat])
-    return {"type": "Feature", "geometry": {"type": "Polygon", "coordinates": [points]}}
+    
+    # Захист від ділення на нуль
+    v_wind_safe = max(v_wind, 0.1)
+    
+    # Максимальний час добігання хмари до кінця зони (у хвилинах)
+    t_max = (max_radius_km * 1000) / (v_wind_safe * 60)
+    
+    # Базові часові межі зон
+    intervals = [10, 30, 60]
+    
+    # Створюємо список часу для малювання (тільки ті межі, куди дістає хмара)
+    times_to_draw = [t_max] + [t for t in intervals if t < t_max]
+    times_to_draw.sort(reverse=True) # Спочатку малюємо найбільші, щоб вони були фоном
+    
+    for t in times_to_draw:
+        # Призначаємо кольори за вашою логікою
+        if t <= 10:
+            color = "#FF0000" # Червоний
+            label = "до 10 хв (Критична зона)"
+        elif t <= 30:
+            color = "#FF8C00" # Помаранчевий
+            label = "10-30 хв (Екстрена евакуація)"
+        elif t <= 60:
+            color = "#FFA07A" # Блідо-помаранчевий
+            label = "30-60 хв (Планова евакуація)"
+        else:
+            color = "#FFD700" # Жовтий
+            label = "більше 1 год (Моніторинг)"
+            
+        r_km = (t * 60 * v_wind_safe) / 1000
+        if r_km > max_radius_km: 
+            r_km = max_radius_km
+            
+        points = [[lon, lat]]
+        for i in range(51):
+            step_a = math.radians(cloud_dir - half_a + (angle * i / 50))
+            dx = (r_km / 111.32) * math.sin(step_a) / math.cos(math.radians(lat))
+            dy = (r_km / 110.57) * math.cos(step_a)
+            points.append([lon + dx, lat + dy])
+        points.append([lon, lat])
+        
+        features.append({
+            "type": "Feature",
+            "properties": {"time_label": label, "color": color, "time_val": round(t, 1)},
+            "geometry": {"type": "Polygon", "coordinates": [points]}
+        })
+        
+    return {"type": "FeatureCollection", "features": features}
 
 def find_settlements(lat, lon, radius_km, wind_dir, v_wind):
     overpass_url = "http://overpass-api.de/api/interpreter"
@@ -166,19 +207,18 @@ with col_map:
     m = folium.Map(location=[st.session_state.lat, st.session_state.lon], zoom_start=st.session_state.zoom, 
                    tiles="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}&hl=uk", attr="Google")
     
-    geojson = create_sector_geojson(st.session_state.lat, st.session_state.lon, g_final, w_dir, v_wind)
-    folium.GeoJson(geojson, style_function=lambda x: {'fillColor': '#ff4b4b', 'color': 'red', 'weight': 2, 'fillOpacity': 0.4}).add_to(m)
-    folium.Marker([st.session_state.lat, st.session_state.lon], icon=folium.Icon(color='red', icon='info-sign')).add_to(m)
+geojson_data = create_isochrone_geojsons(st.session_state.lat, st.session_state.lon, g_final, w_dir, v_wind)
     
-    map_res = st_folium(m, use_container_width=True, height=650, key="v4_map")
-    
-    if map_res:
-        if map_res.get("last_clicked"):
-            nl, nn = map_res["last_clicked"]["lat"], map_res["last_clicked"]["lng"]
-            if nl != st.session_state.lat:
-                st.session_state.lat, st.session_state.lon = nl, nn
-                st.rerun()
-        if map_res.get("zoom"): st.session_state.zoom = map_res["zoom"]
+    folium.GeoJson(
+        geojson_data, 
+        style_function=lambda feature: {
+            'fillColor': feature['properties']['color'], 
+            'color': feature['properties']['color'], 
+            'weight': 1, 
+            'fillOpacity': 0.5
+        },
+        tooltip=folium.GeoJsonTooltip(fields=['time_label'], aliases=['Зона:'], style="font-weight: bold; background-color: #333; color: white;")
+    ).add_to(m)
 
 # ВІДОБРАЖЕННЯ АНАЛІТИКИ (тільки якщо увімкнено)
 if col_info is not None:
