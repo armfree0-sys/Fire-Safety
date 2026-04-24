@@ -75,10 +75,9 @@ def find_settlements(lat, lon, radius_km, wind_dir, v_wind):
         half_a = get_sector_angle(v_wind) / 2
         for p in places:
             p_lat, p_lon = p['lat'], p['lon']
-            dist = math.sqrt((lat-p_lat)**2 + (lon-p_lon)**2) * 111 # спрощена дистанція
+            dist = math.sqrt((lat-p_lat)**2 + (lon-p_lon)**2) * 111 
             if dist > radius_km: continue
             
-            # Розрахунок азимуту
             bearing = math.degrees(math.atan2(p_lon-lon, p_lat-lat)) % 360
             angle_diff = abs((bearing - cloud_dir + 180) % 360 - 180)
             if angle_diff <= half_a or half_a == 180:
@@ -88,7 +87,7 @@ def find_settlements(lat, lon, radius_km, wind_dir, v_wind):
     except: return []
 
 # --- 3. UI ТА СТИЛІЗАЦІЯ ---
-st.set_page_config(page_title="НХР V.4.0 Dashboard", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="НХР V.4.1 Навчальний", layout="wide", initial_sidebar_state="expanded")
 
 st.markdown("""
     <style>
@@ -118,8 +117,11 @@ if 'zoom' not in st.session_state: st.session_state.zoom = 11
 
 # --- SIDEBAR ---
 with st.sidebar:
-    st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Emblem_of_the_Ministry_of_Internal_Affairs_of_Ukraine.svg/100px-Emblem_of_the_Ministry_of_Internal_Affairs_of_Ukraine.svg.png")
-    st.title("НХР V.4.0")
+    st.title("НХР V.4.1 (Чиста Карта)")
+    
+    # ПЕРЕМИКАЧ АНАЛІТИКИ
+    show_analytics = st.toggle("📊 Показати панель аналітики", value=False)
+    st.markdown("---")
     
     tabs = st.tabs(["🧪 Об'єкт", "🌤 Погода"])
     
@@ -146,16 +148,24 @@ with st.sidebar:
             w_dir = st.slider("Напрямок (°)", 0, 360, 0)
             stab = st.selectbox("СВША", list(ATMOSPHERE_STABILITY.keys()))
 
-# --- MAIN DASHBOARD ---
+# --- MAIN DASHBOARD (ДИНАМІЧНИЙ МАКЕТ) ---
 g_final, qe = calculate_zone(sub, qty, spill, v_wind, stab)
 
-col_map, col_info = st.columns([7, 3])
+# ЛОГІКА "ЧИСТОЇ" КАРТИ
+if show_analytics:
+    col_map, col_info = st.columns([7, 3])
+else:
+    col_map = st.container() # Якщо вимкнено, карта займає весь екран (100%)
+    col_info = None
 
+# ВІДОБРАЖЕННЯ КАРТИ (завжди)
 with col_map:
+    # Заголовок карти з базовою інформацією, щоб бачити результати навіть із закритою панеллю
+    st.markdown(f"### 🗺️ Оперативна карта | Глибина зони: {g_final:.2f} км")
+    
     m = folium.Map(location=[st.session_state.lat, st.session_state.lon], zoom_start=st.session_state.zoom, 
                    tiles="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}&hl=uk", attr="Google")
     
-    # Зона
     geojson = create_sector_geojson(st.session_state.lat, st.session_state.lon, g_final, w_dir, v_wind)
     folium.GeoJson(geojson, style_function=lambda x: {'fillColor': '#ff4b4b', 'color': 'red', 'weight': 2, 'fillOpacity': 0.4}).add_to(m)
     folium.Marker([st.session_state.lat, st.session_state.lon], icon=folium.Icon(color='red', icon='info-sign')).add_to(m)
@@ -170,30 +180,32 @@ with col_map:
                 st.rerun()
         if map_res.get("zoom"): st.session_state.zoom = map_res["zoom"]
 
-with col_info:
-    st.markdown("### 📊 Аналітика")
-    st.metric("Глибина зони (Г)", f"{g_final:.2f} км")
-    st.metric("Еквівалентна маса", f"{qe:.2f} т")
-    
-    st.markdown("---")
-    st.markdown("#### 🏘️ Населені пункти в зоні")
-    
-    if st.button("🔍 Проаналізувати місцевість", use_container_width=True):
-        with st.spinner("Пошук об'єктів..."):
-            places = find_settlements(st.session_state.lat, st.session_state.lon, g_final, w_dir, v_wind)
-            if places:
-                for p in places:
-                    st.markdown(f"""<div class="settlement-card">
-                        <b>{p['name']}</b><br>
-                        Відстань: {p['dist']} км | Час: ~{p['time']} хв
-                    </div>""", unsafe_allow_html=True)
-            else:
-                st.success("✅ Загроз населеним пунктам не виявлено")
-    
-    st.markdown("---")
-    if g_final > 5:
-        st.error("🚨 РІВЕНЬ ЗАГРОЗИ: ВИСОКИЙ")
-    elif g_final > 2:
-        st.warning("⚠️ РІВЕНЬ ЗАГРОЗИ: СЕРЕДНІЙ")
-    else:
-        st.info("ℹ️ РІВЕНЬ ЗАГРОЗИ: ЛОКАЛЬНИЙ")
+# ВІДОБРАЖЕННЯ АНАЛІТИКИ (тільки якщо увімкнено)
+if col_info is not None:
+    with col_info:
+        st.markdown("### 📊 Аналітика")
+        st.metric("Глибина зони (Г)", f"{g_final:.2f} км")
+        st.metric("Еквівалентна маса", f"{qe:.2f} т")
+        
+        st.markdown("---")
+        st.markdown("#### 🏘️ Населені пункти в зоні")
+        
+        if st.button("🔍 Проаналізувати місцевість", use_container_width=True):
+            with st.spinner("Пошук об'єктів..."):
+                places = find_settlements(st.session_state.lat, st.session_state.lon, g_final, w_dir, v_wind)
+                if places:
+                    for p in places:
+                        st.markdown(f"""<div class="settlement-card">
+                            <b>{p['name']}</b><br>
+                            Відстань: {p['dist']} км | Час: ~{p['time']} хв
+                        </div>""", unsafe_allow_html=True)
+                else:
+                    st.success("✅ Загроз населеним пунктам не виявлено")
+        
+        st.markdown("---")
+        if g_final > 5:
+            st.error("🚨 РІВЕНЬ ЗАГРОЗИ: ВИСОКИЙ")
+        elif g_final > 2:
+            st.warning("⚠️ РІВЕНЬ ЗАГРОЗИ: СЕРЕДНІЙ")
+        else:
+            st.info("ℹ️ РІВЕНЬ ЗАГРОЗИ: ЛОКАЛЬНИЙ")
