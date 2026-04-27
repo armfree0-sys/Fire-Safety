@@ -28,9 +28,10 @@ with st.sidebar:
     W = st.number_input("Ширина (м)", min_value=1.0, value=5.0)
     H = st.number_input("Висота (м)", min_value=2.0, value=3.0)
     t_air = st.number_input("Температура повітря (°C)", value=30.0)
+    K_free = st.number_input("Коефіцієнт вільного об'єму приміщення", value=0.80)
     
     # Розрахунок вільного об'єму (спрощено 80% від загального)
-    V_free = 0.8 * (L * W * H)
+    V_free = K_free * (L * W * H)
     st.info(f"Вільний об'єм приміщення: **{V_free:.1f} м³**")
 
 # --- КРОК 1: ВИБІР РЕЧОВИНИ ---
