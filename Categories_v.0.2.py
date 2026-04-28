@@ -94,7 +94,7 @@ if sub_data['state'] == "Газ":
         
         V_1t = q * tau_p
         st.latex(r"V_{1\text{т}} = q \cdot \tau_{\text{п}}")
-        st.latex(rf"V_{{1\text{т}}} = {q} \cdot {tau_p} = {V_1t:.3f} \text{{ м}}^3")
+        st.latex(rf"V_{{1\text{{т}}}} = {q} \cdot {tau_p} = {V_1t:.3f} \text{{ м}}^3")
 
     # 2.3 Статичний витік з труб (Формула 10)
     with st.expander("Крок 2.3. Залишки в трубопроводах (Формула 10)", expanded=True):
