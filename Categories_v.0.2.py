@@ -117,7 +117,7 @@ if sub_data['state'] == "Газ":
             
         st.latex(r"V_{2\text{т}} = \sum \pi \cdot r^2 \cdot L \cdot \frac{P_1}{P_0}")
         st.info("Результати за лініями: " + " | ".join(pipe_details))
-        st.latex(rf"V_{{2\text{т}}}} = {V_2t_total:.3f} \text{{ м}}^3")
+        st.latex(rf"V_{{2\text{{т}}}} = {V_2t_total:.3f} \text{{ м}}^3")
 
     # 2.4 Загальна маса (Формули 8 та 6)
     with st.expander("Крок 2.4. Сумарна маса газу (Формула 6 та 8)", expanded=True):
