@@ -67,9 +67,11 @@ with st.expander("📊 Проміжний розрахунок: Густина �
     rho_g_tp = sub_data['M'] / (V0 * (1 + 0.00367 * t_p))
     rho_g_rob = sub_data['M'] / (V0 * (1 + 0.00367 * t_rob))
     
-    # Вивід згідно з вимогами користувача
-    st.latex(rf"\rho_{{\text{{г, р}}}} = \frac{{M}}{{V_0 \cdot (1 + 0.00367 \cdot t_{{\text{{р}}}})}} = {rho_g_tp:.3f} \text{{ кг/м}}^3 \text{{ (при t_p)}}")
-    st.latex(rf"\rho_{{\text{{г, роб}}}} = \frac{{M}}{{V_0 \cdot (1 + 0.00367 \cdot t_{{\text{{роб}}}})}} = {rho_g_rob:.3f} \text{{ кг/м}}^3 \text{{ (при t_rob)}}")
+    st.markdown("**1. Густина газу за розрахункової температури приміщення (для ΔP):**")
+    st.latex(rf"\rho_{{\text{{г, р}}}} = \frac{{M}}{{V_0 \cdot (1 + 0.00367 \cdot t_{{\text{{р}}}})}} = \frac{{{sub_data['M']}}}{{{V0} \cdot (1 + 0.00367 \cdot {t_p})}} = {rho_g_tp:.3f} \text{{ кг/м}}^3")
+    
+    st.markdown("**2. Густина газу за робочої температури в апараті (для маси витоку):**")
+    st.latex(rf"\rho_{{\text{{г, роб}}}} = \frac{{M}}{{V_0 \cdot (1 + 0.00367 \cdot t_{{\text{{роб}}}})}} = \frac{{{sub_data['M']}}}{{{V0} \cdot (1 + 0.00367 \cdot {t_rob})}} = {rho_g_rob:.3f} \text{{ кг/м}}^3")
 
 # --- 5. КРОК 2: ПАРАМЕТРИ АВАРІЇ (МАСА) ---
 if sub_data['state'] == "Газ":
