@@ -3,7 +3,7 @@ import pandas as pd
 import math
 
 # --- 1. НАЛАШТУВАННЯ СТОРІНКИ ТА БАЗА ДАНИХ ---
-st.set_page_config(page_title="Categories_V.0.8", layout="wide")
+st.set_page_config(page_title="Categories_V.0.9", layout="wide")
 
 if 'pipes' not in st.session_state:
     st.session_state.pipes = pd.DataFrame([
@@ -37,24 +37,37 @@ with st.sidebar:
     st.latex(rf"V = L \cdot B \cdot H = {L} \cdot {B} \cdot {H} = {V_geom:.2f} \text{{ м}}^3")
     st.latex(rf"V_{{\text{{в}}}} = V \cdot K_{{\text{{вільн}}}} = {V_geom:.2f} \cdot {K_free} = {V_v:.2f} \text{{ м}}^3")
 
-st.title("🔥 Модуль розрахунку категорій «Categories_V.0.8»")
+st.title("🔥 Модуль розрахунку категорій «Categories_V.0.9»")
 
 # --- 3. КРОК 1: ВИБІР РЕЧОВИНИ ТА ДОВІДНИК ---
+is_manual = False
+n_C, n_H, n_O, n_X = 0, 0, 0, 0
+
 with st.expander("Крок 1. Характеристика горючої речовини", expanded=True):
     choice = st.selectbox("Оберіть речовину:", list(SUBSTANCES_DB.keys()) + ["➕ Речовина відсутня (ввести вручну)"])
     
     if choice == "➕ Речовина відсутня (ввести вручну)":
+        is_manual = True
         col1, col2 = st.columns(2)
         with col1:
             sub_name = st.text_input("Назва:")
             state = st.radio("Агрегатний стан:", ["Газ", "Рідина"])
             is_known = st.checkbox("Хімічна формула відома?", value=True)
+            
+            if is_known:
+                st.markdown("**Кількість атомів у молекулі:**")
+                col_c, col_h, col_o, col_x = st.columns(4)
+                n_C = col_c.number_input("C", min_value=0, value=1, help="Вуглець")
+                n_H = col_h.number_input("H", min_value=0, value=4, help="Водень")
+                n_O = col_o.number_input("O", min_value=0, value=0, help="Кисень")
+                n_X = col_x.number_input("Hal", min_value=0, value=0, help="Галогени (F, Cl, Br, I)")
+
         with col2:
-            M = st.number_input("Молярна маса M, кг/кмоль", value=50.0)
-            C_st = st.number_input("Стехіометрична конц. C_ст, %", value=1.0)
+            M = st.number_input("Молярна маса M, кг/кмоль", value=16.04)
             Z = st.number_input("Коефіцієнт Z", value=0.5)
-            H_T = st.number_input("Нижча теплота згоряння H_т, МДж/кг", value=44.0)
-        sub_data = {"state": state, "M": M, "C_st": C_st, "Z": Z, "H_T": H_T, "is_known": is_known}
+            H_T = st.number_input("Нижча теплота згоряння H_т, МДж/кг", value=50.0)
+            
+        sub_data = {"state": state, "M": M, "C_st": 0.0, "Z": Z, "H_T": H_T, "is_known": is_known}
     else:
         sub_data = SUBSTANCES_DB[choice]
         sub_data["state"] = "Газ"
@@ -62,16 +75,30 @@ with st.expander("Крок 1. Характеристика горючої реч
         if "description" in sub_data:
             st.info(f"📖 **Довідкова інформація:**\n\n{sub_data['description']}")
 
-# --- 4. ПРОМІЖНИЙ РОЗРАХУНОК: ГУСТИНА ГАЗУ ---
-with st.expander("📊 Проміжний розрахунок: Густина газу", expanded=True):
+# --- 4. ПРОМІЖНИЙ РОЗРАХУНОК: ГУСТИНА ТА СТЕХІОМЕТРІЯ ---
+with st.expander("📊 Проміжний розрахунок: Фізико-хімічні властивості", expanded=True):
     t_rob = st.number_input("Робоча температура газу всередині обладнання t_роб, °C", value=t_p)
     V0_const = 22.413
     
+    # 4.1 Густина
     rho_g_tp = sub_data['M'] / (V0_const * (1 + 0.00367 * t_p))
     rho_g_rob = sub_data['M'] / (V0_const * (1 + 0.00367 * t_rob))
     
+    st.markdown("**Густина газу:**")
     st.latex(rf"\rho_{{\text{{г, р}}}} = \frac{{M}}{{V_0 \cdot (1 + 0.00367 \cdot t_{{\text{{р}}}})}} = \frac{{{sub_data['M']}}}{{{V0_const} \cdot (1 + 0.00367 \cdot {t_p})}} = {rho_g_tp:.3f} \text{{ кг/м}}^3")
     st.latex(rf"\rho_{{\text{{г, роб}}}} = \frac{{M}}{{V_0 \cdot (1 + 0.00367 \cdot t_{{\text{{роб}}}})}} = \frac{{{sub_data['M']}}}{{{V0_const} \cdot (1 + 0.00367 \cdot {t_rob})}} = {rho_g_rob:.3f} \text{{ кг/м}}^3")
+
+    # 4.2 Стехіометрія (тільки для ручного вводу з відомою формулою)
+    if is_manual and sub_data['is_known']:
+        st.markdown("**Стехіометрична концентрація:**")
+        beta = n_C + (n_H - n_X)/4 - n_O/2
+        C_st_calc = 100 / (1 + 4.84 * beta)
+        sub_data['C_st'] = C_st_calc # Записуємо в словник для фінальної формули
+        
+        st.latex(r"\beta = n_C + \frac{n_H - n_X}{4} - \frac{n_O}{2}")
+        st.latex(rf"\beta = {n_C} + \frac{{{n_H} - {n_X}}}{{4}} - \frac{{{n_O}}}{{2}} = {beta:.3f}")
+        st.latex(r"C_{\text{ст}} = \frac{100}{1 + 4.84 \cdot \beta}")
+        st.latex(rf"C_{{\text{{ст}}}} = \frac{{100}}{{1 + 4.84 \cdot {beta:.3f}}} = {C_st_calc:.2f}\%")
 
 # --- 5. КРОК 2: РОЗРАХУНОК ОБ'ЄМІВ ТА МАСИ ---
 mass_total = 0.0
@@ -139,7 +166,7 @@ with st.expander("Крок 3. Врахування вентиляції та р�
             delta_P = (P_max_const - P0_atm) * (m_calc * sub_data['Z'] / (V_v * rho_g_tp)) * (100 / sub_data['C_st']) * (1 / K_n_const)
             st.markdown("**Надлишковий тиск вибуху за ф. (1):**")
             st.latex(r"\Delta P = (P_{\text{max}} - P_0) \cdot \frac{m_{\text{розр}} \cdot Z}{V_{\text{в}} \cdot \rho_{\text{г, р}}} \cdot \frac{100}{C_{\text{ст}}} \cdot \frac{1}{K_{\text{н}}}")
-            st.latex(rf"\Delta P = ({P_max_const} - {P0_atm}) \cdot \frac{{{m_calc:.3f} \cdot {sub_data['Z']}}}{{{V_v:.2f} \cdot {rho_g_tp:.3f}}} \cdot \frac{{100}}{{{sub_data['C_st']}}} \cdot \frac{{1}}{{{K_n_const}}} = {delta_P:.2f} \text{{ кПа}}")
+            st.latex(rf"\Delta P = ({P_max_const} - {P0_atm}) \cdot \frac{{{m_calc:.3f} \cdot {sub_data['Z']}}}{{{V_v:.2f} \cdot {rho_g_tp:.3f}}} \cdot \frac{{100}}{{{sub_data['C_st']:.2f}}} \cdot \frac{{1}}{{{K_n_const}}} = {delta_P:.2f} \text{{ кПа}}")
         else:
             delta_P = (P_max_const - P0_atm) * (m_calc * sub_data['H_T'] * P0_atm) / (V_v * 1.2 * 1.01e-3 * (273.15 + t_p) * K_n_const)
             st.markdown("**Надлишковий тиск вибуху за ф. (3):**")
