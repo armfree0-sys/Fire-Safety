@@ -3,7 +3,7 @@ import pandas as pd
 import math
 
 # --- 1. НАЛАШТУВАННЯ СТОРІНКИ ТА БАЗА ДАНИХ ---
-st.set_page_config(page_title="Categories_V.0.9", layout="wide")
+st.set_page_config(page_title="Categories_V.0.10", layout="wide")
 
 if 'pipes' not in st.session_state:
     st.session_state.pipes = pd.DataFrame([
@@ -12,12 +12,12 @@ if 'pipes' not in st.session_state:
 
 SUBSTANCES_DB = {
     "Метан (Природний газ)": {
-        "M": 16.04, "C_st": 9.48, "Z": 0.5, "H_T": 50.0, "is_known": True,
+        "M": 16.04, "C_st": 9.48, "Z": 0.5, "H_T": 50.0, "is_known": True, "P_max": 706.0,
         "description": "Метан, СН4, горючий безбарвний газ. Мол. маса 16,04; густина 0,7168 кг/м³ при 0°С; т. кип. -161,58 °С; lg p = 5,68923 - 380,224/(264,804 + t) при т-рі від -182 до -162 °С; коеф. диф. газу в повітрі 0,196 см²/с; тепл. утвор. -74,8 кДж/моль; тепл. згоряння -802 кДж/моль. Т. самозайм. 537 °С; конц. межі пошир. полум'я: в повітрі 5,28—14,1% (об.); макс. тиск вибуху 706 кПа; макс. швидкість наростання тиску 18 МПа/с; норм. швидкість пошир. полум'я 0,338 м/с; мінім. енергія запалювання 0,28 мДж. Засоби гасіння: табл. 4.1, гр. 7."
     },
     "Пропан": {
-        "M": 44.1, "C_st": 4.02, "Z": 0.5, "H_T": 46.35, "is_known": True,
-        "description": "Пропан, С3Н8, горючий газ. Важчий за повітря. Використовується як паливо в побуті та промисловості."
+        "M": 44.1, "C_st": 4.02, "Z": 0.5, "H_T": 46.35, "is_known": True, "P_max": 800.0,
+        "description": "Пропан, С3Н8, горючий газ. Важчий за повітря. Використовується як паливо в побуті та промисловості. Максимальний тиск вибуху близько 800 кПа."
     }
 }
 
@@ -37,7 +37,7 @@ with st.sidebar:
     st.latex(rf"V = L \cdot B \cdot H = {L} \cdot {B} \cdot {H} = {V_geom:.2f} \text{{ м}}^3")
     st.latex(rf"V_{{\text{{в}}}} = V \cdot K_{{\text{{вільн}}}} = {V_geom:.2f} \cdot {K_free} = {V_v:.2f} \text{{ м}}^3")
 
-st.title("🔥 Модуль розрахунку категорій «Categories_V.0.9»")
+st.title("🔥 Модуль розрахунку категорій «Categories_V.0.10»")
 
 # --- 3. КРОК 1: ВИБІР РЕЧОВИНИ ТА ДОВІДНИК ---
 is_manual = False
@@ -64,14 +64,18 @@ with st.expander("Крок 1. Характеристика горючої реч
 
         with col2:
             M = st.number_input("Молярна маса M, кг/кмоль", value=16.04)
+            P_max = st.number_input("Макс. тиск вибуху P_max, кПа", value=900.0)
             Z = st.number_input("Коефіцієнт Z", value=0.5)
             H_T = st.number_input("Нижча теплота згоряння H_т, МДж/кг", value=50.0)
             
-        sub_data = {"state": state, "M": M, "C_st": 0.0, "Z": Z, "H_T": H_T, "is_known": is_known}
+        sub_data = {"state": state, "M": M, "C_st": 0.0, "Z": Z, "H_T": H_T, "is_known": is_known, "P_max": P_max}
     else:
         sub_data = SUBSTANCES_DB[choice]
         sub_data["state"] = "Газ"
-        st.success(f"✅ Обрано: **{choice}**")
+        if "P_max" not in sub_data:
+            sub_data["P_max"] = 900.0 # Страховка, якщо в БД немає значення
+            
+        st.success(f"✅ Обрано: **{choice}** (P_max = {sub_data['P_max']} кПа)")
         if "description" in sub_data:
             st.info(f"📖 **Довідкова інформація:**\n\n{sub_data['description']}")
 
@@ -154,14 +158,16 @@ with st.expander("Крок 3. Врахування вентиляції та р�
     if is_vent:
         col_a, col_t_h = st.columns(2)
         A_exch = col_a.number_input("Кратність A, 1/год", value=8.0)
-        T_h = col_t_h.number_input("Час роботи вентиляції T, год", value=1.0)
-        K_coeff = A_exch * T_h + 1
-        st.latex(rf"K = A \cdot T + 1 = {A_exch} \cdot {T_h} + 1 = {K_coeff:.2f}")
+        tau_vent = col_t_h.number_input("Час роботи вентиляції τ, год", value=1.0)
+        K_coeff = A_exch * tau_vent + 1
+        st.latex(rf"K = A \cdot \tau + 1 = {A_exch} \cdot {tau_vent} + 1 = {K_coeff:.2f}")
         m_calc = mass_total / K_coeff
         st.latex(rf"m_{{\text{{розр}}}} = \frac{{m}}{{K}} = \frac{{{mass_total:.3f}}}{{{K_coeff:.2f}}} = {m_calc:.3f} \text{{ кг}}")
     
     if st.button("🚀 ПРОВЕСТИ ПОВНИЙ РОЗРАХУНОК ΔP"):
-        P_max_const, K_n_const = 900.0, 3.0
+        P_max_const = sub_data['P_max'] # Беремо P_max з бази або ручного вводу
+        K_n_const = 3.0
+        
         if sub_data['is_known']:
             delta_P = (P_max_const - P0_atm) * (m_calc * sub_data['Z'] / (V_v * rho_g_tp)) * (100 / sub_data['C_st']) * (1 / K_n_const)
             st.markdown("**Надлишковий тиск вибуху за ф. (1):**")
