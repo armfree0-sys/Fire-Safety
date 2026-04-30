@@ -3,7 +3,7 @@ import pandas as pd
 import math
 
 # --- 1. НАЛАШТУВАННЯ ТА БАЗА ДАНИХ ---
-st.set_page_config(page_title="Categories_V.0.16.2", layout="wide")
+st.set_page_config(page_title="Categories_V.0.16.3", layout="wide")
 
 if 'pipes_gas' not in st.session_state:
     st.session_state.pipes_gas = pd.DataFrame([{"Лінія": "Вхідна", "Довжина L, м": 10.0, "Діаметр d, мм": 50.0, "Тиск P1, кПа": 300.0}])
@@ -30,7 +30,7 @@ with st.sidebar:
     st.latex(rf"S_{{\text{{прим}}}} = {S_room:.2f} \text{{ м}}^2")
     st.latex(rf"V_{{\text{{в}}}} = {V_v:.2f} \text{{ м}}^3")
 
-st.title("🔥 Модуль розрахунку категорій «Categories_V.0.16.2»")
+st.title("🔥 Модуль розрахунку категорій «Categories_V.0.16.3»")
 
 # --- 3. КРОК 1: ВИБІР РЕЧОВИНИ ---
 with st.expander("Крок 1. Характеристика горючої речовини", expanded=True):
@@ -206,30 +206,47 @@ elif sub_data['state'] == "Рідина":
         eta = 1.0 + 8.02 * v_air - 0.23 * v_air * t_p_room + 3.42 * math.sqrt(v_air)
         W = 1e-6 * eta * math.sqrt(sub_data['M']) * P_s
         
-        # Розрахунок маси парів без обмежень
-        m_v_spill_calc = W * F_spill * T_vyp
-        m_v_emk_calc = W * F_emk * T_vyp
-        m_v_sv_calc = W * F_sv * T_vyp
-        
-        # Обмеження маси пари наявною масою рідини
-        m_v_spill = min(m_v_spill_calc, m_l_spill)
-        m_v_emk = min(m_v_emk_calc, m_l_emk) if has_emk else 0.0
-        m_v_sv = min(m_v_sv_calc, m_l_sv) if has_sv else 0.0
-        
-        mass_total = m_v_spill + m_v_emk + m_v_sv 
-        
         st.latex(rf"\eta = 1 + 8.02 \cdot {v_air} - 0.23 \cdot {v_air} \cdot {t_p_room} + 3.42 \cdot \sqrt{{{v_air}}} = {eta:.3f}")
         st.latex(rf"W = 10^{{-6}} \cdot {eta:.3f} \cdot \sqrt{{{sub_data['M']}}} \cdot {P_s:.3f} = {W:.6f} \text{{ кг/(м}}^2 \cdot \text{{с)}}")
         
-        st.markdown("**Маса пари по джерелам (обмежена масою наявної рідини):**")
-        st.latex(rf"m_{{\text{{пари.розл}}}} = \min(W \cdot F_{{\text{{розл}}}} \cdot T, \: m_{{\text{{рід.розл}}}}) = \min({m_v_spill_calc:.3f}, {m_l_spill:.3f}) = \mathbf{{{m_v_spill:.3f} \text{{ кг}}}}")
+        st.markdown("---")
+        st.markdown("**Маса пари по джерелам:**")
+
+        # Розлив
+        m_v_spill_calc = W * F_spill * T_vyp
+        st.latex(rf"m_{{\text{{пари.розл}}}} = W \cdot F_{{\text{{розл}}}} \cdot T = {W:.6f} \cdot {F_spill:.2f} \cdot {T_vyp} = {m_v_spill_calc:.3f} \text{{ кг}}")
+        if m_v_spill_calc > m_l_spill:
+            st.info(f"Оскільки розрахована маса пари перевищує масу рідини із зазначеної поверхні, приймаємо її значення = **{m_l_spill:.3f} кг**")
+            m_v_spill = m_l_spill
+        else:
+            m_v_spill = m_v_spill_calc
+
+        # Ємності
+        m_v_emk = 0.0
+        if has_emk:
+            m_v_emk_calc = W * F_emk * T_vyp
+            st.latex(rf"m_{{\text{{пари.ємк}}}} = W \cdot F_{{\text{{ємк}}}} \cdot T = {W:.6f} \cdot {F_emk:.2f} \cdot {T_vyp} = {m_v_emk_calc:.3f} \text{{ кг}}")
+            if m_v_emk_calc > m_l_emk:
+                st.info(f"Оскільки розрахована маса пари перевищує масу рідини із зазначеної поверхні, приймаємо її значення = **{m_l_emk:.3f} кг**")
+                m_v_emk = m_l_emk
+            else:
+                m_v_emk = m_v_emk_calc
+
+        # Свіжопофарбовані поверхні
+        m_v_sv = 0.0
+        if has_sv:
+            m_v_sv_calc = W * F_sv * T_vyp
+            st.latex(rf"m_{{\text{{пари.св}}}} = W \cdot F_{{\text{{св}}}} \cdot T = {W:.6f} \cdot {F_sv:.2f} \cdot {T_vyp} = {m_v_sv_calc:.3f} \text{{ кг}}")
+            if m_v_sv_calc > m_l_sv:
+                st.info(f"Оскільки розрахована маса пари перевищує масу рідини із зазначеної поверхні, приймаємо її значення = **{m_l_sv:.3f} кг**")
+                m_v_sv = m_l_sv
+            else:
+                m_v_sv = m_v_sv_calc
         
-        if has_emk: 
-            st.latex(rf"m_{{\text{{пари.ємк}}}} = \min(W \cdot F_{{\text{{ємк}}}} \cdot T, \: m_{{\text{{рід.ємк}}}}) = \min({m_v_emk_calc:.3f}, {m_l_emk:.3f}) = \mathbf{{{m_v_emk:.3f} \text{{ кг}}}}")
-        if has_sv: 
-            st.latex(rf"m_{{\text{{пари.св}}}} = \min(W \cdot F_{{\text{{св}}}} \cdot T, \: m_{{\text{{рід.св}}}}) = \min({m_v_sv_calc:.3f}, {m_l_sv:.3f}) = \mathbf{{{m_v_sv:.3f} \text{{ кг}}}}")
+        mass_total = m_v_spill + m_v_emk + m_v_sv 
         
-        st.markdown("**Сумарна маса пари:**")
+        st.markdown("---")
+        st.markdown("**Сумарна розрахункова маса пари:**")
         st.latex(rf"m = m_{{\text{{пари.розл}}}} + m_{{\text{{пари.ємк}}}} + m_{{\text{{пари.св}}}} = {m_v_spill:.3f} + {m_v_emk:.3f} + {m_v_sv:.3f} = \mathbf{{{mass_total:.3f} \text{{ кг}}}}")
 
 # --- 6. КРОК 3: ВЕНТИЛЯЦІЯ ТА ΔP ---
