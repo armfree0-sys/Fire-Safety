@@ -3,7 +3,7 @@ import pandas as pd
 import math
 
 # --- 1. НАЛАШТУВАННЯ ТА БАЗА ДАНИХ ---
-st.set_page_config(page_title="Categories_V.0.16.1", layout="wide")
+st.set_page_config(page_title="Categories_V.0.16.2", layout="wide")
 
 if 'pipes_gas' not in st.session_state:
     st.session_state.pipes_gas = pd.DataFrame([{"Лінія": "Вхідна", "Довжина L, м": 10.0, "Діаметр d, мм": 50.0, "Тиск P1, кПа": 300.0}])
@@ -30,7 +30,7 @@ with st.sidebar:
     st.latex(rf"S_{{\text{{прим}}}} = {S_room:.2f} \text{{ м}}^2")
     st.latex(rf"V_{{\text{{в}}}} = {V_v:.2f} \text{{ м}}^3")
 
-st.title("🔥 Модуль розрахунку категорій «Categories_V.0.16.1»")
+st.title("🔥 Модуль розрахунку категорій «Categories_V.0.16.2»")
 
 # --- 3. КРОК 1: ВИБІР РЕЧОВИНИ ---
 with st.expander("Крок 1. Характеристика горючої речовини", expanded=True):
@@ -115,57 +115,75 @@ if sub_data['state'] == "Газ":
 elif sub_data['state'] == "Рідина":
     st.header("Крок 2. Розрахунок маси парів рідини (ЛЗР/ГР)")
     
-    with st.expander("Крок 2.1. Динамічний об'єм з трубопроводу (V_1т)", expanded=True):
+    with st.expander("Крок 2.1. Об'єм рідини з трубопроводів (V_т)", expanded=True):
         col1, col2 = st.columns(2)
-        q_liq = col1.number_input("Витрата рідини q, м³/с", value=0.005)
+        q_liq = col1.number_input("Витрата рідини q, м³/с", min_value=0.0, value=0.005)
         tau_choice = col2.selectbox("Час перекривання τ_п:", ["Автоматика (120 с)", "Ручне (300 с)"])
         tau_p = 120 if "Автоматика" in tau_choice else 300
         V_1t = q_liq * tau_p
-        st.latex(rf"V_{{1\text{{т}}}} = q \cdot \tau_{{\text{{п}}}} = {q_liq} \cdot {tau_p} = {V_1t:.3f} \text{{ м}}^3")
 
-    with st.expander("Крок 2.2. Статичний об'єм з трубопроводів (V_2т)", expanded=True):
-        st.info("💡 Для рідин розраховується суто геометричний об'єм.")
+        st.markdown("**Статичний об'єм з відключеної ділянки (геометрія труб):**")
         edited_pipes_liq = st.data_editor(st.session_state.pipes_liq, num_rows="dynamic", use_container_width=True)
         V_2t = 0.0
         for i, row in edited_pipes_liq.iterrows():
             r_m = (row["Діаметр d, мм"] / 1000) / 2
             V_2t += math.pi * (r_m**2) * row["Довжина L, м"]
-        st.latex(rf"V_{{2\text{{т}}}} = \sum \pi \cdot r^2 \cdot L = {V_2t:.3f} \text{{ м}}^3")
-
-    with st.expander("Крок 2.3-2.5. Сумарний об'єм вилитої рідини (V_л)", expanded=True):
+            
         V_t = V_1t + V_2t
-        V_o = st.number_input("Геометричний об'єм апарата V_о, м³", value=0.5)
-        V_l_total = V_o + V_t
-        st.latex(rf"V_{{\text{{л}}}} = V_{{\text{{о}}}} + V_{{\text{{т}}}} = {V_o:.3f} + {V_t:.3f} = \mathbf{{{V_l_total:.3f} \text{{ м}}^3}}")
+        
+        st.latex(rf"V_{{1\text{{т}}}} = q \cdot \tau_{{\text{{п}}}} = {q_liq} \cdot {tau_p} = {V_1t:.3f} \text{{ м}}^3")
+        st.latex(rf"V_{{2\text{{т}}}} = \sum \pi \cdot r^2 \cdot L = {V_2t:.3f} \text{{ м}}^3")
+        st.latex(rf"V_{{\text{{т}}}} = V_{{1\text{{т}}}} + V_{{2\text{{т}}}} = {V_1t:.3f} + {V_2t:.3f} = \mathbf{{{V_t:.3f} \text{{ м}}^3}}")
 
-    with st.expander("Крок 2.6. Визначення сумарної площі випаровування (F_вип)", expanded=True):
+    with st.expander("Крок 2.2. Загальний об'єм та маса вилитої рідини", expanded=True):
+        V_o = st.number_input("Геометричний об'єм апарата V_о, м³", min_value=0.0, value=0.5)
+        V_l_total = V_o + V_t
+        m_l_spill = V_l_total * sub_data['rho_l']
+        
+        st.latex(rf"V_{{\text{{л}}}} = V_{{\text{{о}}}} + V_{{\text{{т}}}} = {V_o:.3f} + {V_t:.3f} = \mathbf{{{V_l_total:.3f} \text{{ м}}^3}}")
+        st.latex(rf"m_{{\text{{рід.розл}}}} = V_{{\text{{л}}}} \cdot \rho_{{\text{{рід}}}} = {V_l_total:.3f} \cdot {sub_data['rho_l']} = \mathbf{{{m_l_spill:.2f} \text{{ кг}}}}")
+
+    with st.expander("Крок 2.3. Джерела випаровування (Площі та маси)", expanded=True):
         st.markdown("**1. Аварійний розлив на підлогу:**")
         col_f1, col_f2 = st.columns(2)
         is_solvent = col_f1.checkbox("Вміст розчинників ≤ 70%?", value=False)
         has_tray = col_f2.checkbox("Рідина у піддоні?", value=False)
-        F_tray = col_f2.number_input("Площа піддону, м²", value=2.0) if has_tray else float('inf')
+        F_tray = col_f2.number_input("Площа піддону, м²", min_value=0.0, value=2.0) if has_tray else float('inf')
         
         k_f = 0.5 if is_solvent else 1.0
         F_rozr = V_l_total * 1000 * k_f
         F_spill = min(F_rozr, F_tray, S_room)
         tray_str = f"{F_tray:.2f}" if has_tray else r"\infty"
-        st.latex(rf"F_{{\text{{розл}}}} = \min({F_rozr:.2f}, {tray_str}, {S_room:.2f}) = {F_spill:.2f} \text{{ м}}^2")
+        st.latex(rf"F_{{\text{{розл}}}} = \min({F_rozr:.2f}, {tray_str}, {S_room:.2f}) = \mathbf{{{F_spill:.2f} \text{{ м}}^2}}")
 
         st.markdown("---")
-        st.markdown("**2. Додаткові джерела випаровування (задаються площею):**")
+        st.markdown("**2. Додаткові джерела випаровування:**")
         col_c1, col_c2 = st.columns(2)
+        
         with col_c1:
-            has_emk = st.checkbox("Відкриті ємності (F_ємк)?")
-            F_emk = st.number_input("Площа дзеркала ємностей, м²", value=1.5, format="%.2f") if has_emk else 0.0
-        with col_c2:
-            has_sv = st.checkbox("Свіжопофарбовані поверхні (F_св)?")
-            F_sv = st.number_input("Площа пофарбованих поверхонь, м²", value=10.0, format="%.2f") if has_sv else 0.0
-            
-        F_vyp = F_spill + F_emk + F_sv
-        st.markdown("**Сумарна площа випаровування:**")
-        st.latex(rf"F_{{\text{{вип}}}} = F_{{\text{{розл}}}} + F_{{\text{{ємк}}}} + F_{{\text{{св}}}} = {F_spill:.2f} + {F_emk:.2f} + {F_sv:.2f} = \mathbf{{{F_vyp:.2f} \text{{ м}}^2}}")
+            has_emk = st.checkbox("Відкриті ємності (апарати)?")
+            if has_emk:
+                F_emk = st.number_input("Площа дзеркала F_ємк, м²", min_value=0.0, value=1.5, format="%.2f")
+                V_emk = st.number_input("Об'єм рідини V_ємк, м³", min_value=0.0, value=0.05, format="%.3f")
+                m_l_emk = V_emk * sub_data['rho_l']
+            else:
+                F_emk, V_emk, m_l_emk = 0.0, 0.0, 0.0
 
-    with st.expander("Крок 2.7. Тиск насиченої пари (P_s)", expanded=True):
+        with col_c2:
+            has_sv = st.checkbox("Свіжопофарбовані поверхні?")
+            if has_sv:
+                F_sv = st.number_input("Площа фарбування F_св, м²", min_value=0.0, value=10.0, format="%.2f")
+                V_sv = st.number_input("Об'єм нанесеної рідини V_св, м³", min_value=0.0, value=0.01, format="%.3f")
+                m_l_sv = V_sv * sub_data['rho_l']
+            else:
+                F_sv, V_sv, m_l_sv = 0.0, 0.0, 0.0
+                
+        if has_emk:
+            st.latex(rf"m_{{\text{{рід.ємк}}}} = V_{{\text{{ємк}}}} \cdot \rho_{{\text{{рід}}}} = {V_emk:.3f} \cdot {sub_data['rho_l']} = \mathbf{{{m_l_emk:.2f} \text{{ кг}}}} \quad (F_{{\text{{ємк}}}} = {F_emk:.2f} \text{{ м}}^2)")
+        if has_sv:
+            st.latex(rf"m_{{\text{{рід.св}}}} = V_{{\text{{св}}}} \cdot \rho_{{\text{{рід}}}} = {V_sv:.3f} \cdot {sub_data['rho_l']} = \mathbf{{{m_l_sv:.2f} \text{{ кг}}}} \quad (F_{{\text{{св}}}} = {F_sv:.2f} \text{{ м}}^2)")
+
+    with st.expander("Крок 2.4. Тиск насиченої пари (P_s)", expanded=True):
         col_ant, col_inp = st.columns([2, 1])
         with col_ant:
             st.markdown("**Константи рівняння Антуана:**")
@@ -180,37 +198,47 @@ elif sub_data['state'] == "Рідина":
         st.markdown(f"**Розрахункова температура $t_p = {t_design}^\circ\\text{{C}}$**")
         st.latex(rf"P_S = 10^{{A - \frac{{B}}{{C + t_p}}}} = 10^{{{sub_data['A']} - \frac{{{sub_data['B']}}}{{{sub_data['C']} + {t_design}}}}} = {P_s:.3f} \text{{ кПа}}")
 
-    with st.expander("Крок 2.8. Маса пари, що утворилася (W та m)", expanded=True):
+    with st.expander("Крок 2.5. Маса пари, що утворилася (W та m)", expanded=True):
         col_v, col_T = st.columns(2)
         v_air = col_v.number_input("Швидкість повітря v, м/с", min_value=0.0, value=0.1)
-        T_vyp = col_T.number_input("Час випаровування T, с", value=3600)
+        T_vyp = col_T.number_input("Час випаровування T, с", min_value=0, value=3600)
         
         eta = 1.0 + 8.02 * v_air - 0.23 * v_air * t_p_room + 3.42 * math.sqrt(v_air)
         W = 1e-6 * eta * math.sqrt(sub_data['M']) * P_s
         
-        m_spill = W * F_spill * T_vyp
-        m_emk = W * F_emk * T_vyp
-        m_sv = W * F_sv * T_vyp
-        mass_total = m_spill + m_emk + m_sv 
+        # Розрахунок маси парів без обмежень
+        m_v_spill_calc = W * F_spill * T_vyp
+        m_v_emk_calc = W * F_emk * T_vyp
+        m_v_sv_calc = W * F_sv * T_vyp
+        
+        # Обмеження маси пари наявною масою рідини
+        m_v_spill = min(m_v_spill_calc, m_l_spill)
+        m_v_emk = min(m_v_emk_calc, m_l_emk) if has_emk else 0.0
+        m_v_sv = min(m_v_sv_calc, m_l_sv) if has_sv else 0.0
+        
+        mass_total = m_v_spill + m_v_emk + m_v_sv 
         
         st.latex(rf"\eta = 1 + 8.02 \cdot {v_air} - 0.23 \cdot {v_air} \cdot {t_p_room} + 3.42 \cdot \sqrt{{{v_air}}} = {eta:.3f}")
         st.latex(rf"W = 10^{{-6}} \cdot {eta:.3f} \cdot \sqrt{{{sub_data['M']}}} \cdot {P_s:.3f} = {W:.6f} \text{{ кг/(м}}^2 \cdot \text{{с)}}")
         
-        st.markdown("**Маса пари по джерелам:**")
-        st.latex(rf"m_{{\text{{розл}}}} = W \cdot F_{{\text{{розл}}}} \cdot T = {m_spill:.3f} \text{{ кг}}")
-        if has_emk: st.latex(rf"m_{{\text{{ємк}}}} = W \cdot F_{{\text{{ємк}}}} \cdot T = {m_emk:.3f} \text{{ кг}}")
-        if has_sv: st.latex(rf"m_{{\text{{св}}}} = W \cdot F_{{\text{{св}}}} \cdot T = {m_sv:.3f} \text{{ кг}}")
+        st.markdown("**Маса пари по джерелам (обмежена масою наявної рідини):**")
+        st.latex(rf"m_{{\text{{пари.розл}}}} = \min(W \cdot F_{{\text{{розл}}}} \cdot T, \: m_{{\text{{рід.розл}}}}) = \min({m_v_spill_calc:.3f}, {m_l_spill:.3f}) = \mathbf{{{m_v_spill:.3f} \text{{ кг}}}}")
         
-        st.markdown("**Сумарна маса:**")
-        st.latex(rf"m = \mathbf{{{mass_total:.3f} \text{{ кг}}}}")
+        if has_emk: 
+            st.latex(rf"m_{{\text{{пари.ємк}}}} = \min(W \cdot F_{{\text{{ємк}}}} \cdot T, \: m_{{\text{{рід.ємк}}}}) = \min({m_v_emk_calc:.3f}, {m_l_emk:.3f}) = \mathbf{{{m_v_emk:.3f} \text{{ кг}}}}")
+        if has_sv: 
+            st.latex(rf"m_{{\text{{пари.св}}}} = \min(W \cdot F_{{\text{{св}}}} \cdot T, \: m_{{\text{{рід.св}}}}) = \min({m_v_sv_calc:.3f}, {m_l_sv:.3f}) = \mathbf{{{m_v_sv:.3f} \text{{ кг}}}}")
+        
+        st.markdown("**Сумарна маса пари:**")
+        st.latex(rf"m = m_{{\text{{пари.розл}}}} + m_{{\text{{пари.ємк}}}} + m_{{\text{{пари.св}}}} = {m_v_spill:.3f} + {m_v_emk:.3f} + {m_v_sv:.3f} = \mathbf{{{mass_total:.3f} \text{{ кг}}}}")
 
 # --- 6. КРОК 3: ВЕНТИЛЯЦІЯ ТА ΔP ---
 with st.expander("Крок 3. Врахування вентиляції та розрахунок ΔP", expanded=True):
     is_vent = st.checkbox("Аварійна вентиляція?")
     if is_vent:
         col_a, col_t_h = st.columns(2)
-        A_exch = col_a.number_input("Кратність A, 1/год", value=8.0)
-        tau_vent = col_t_h.number_input("Час роботи вентиляції τ, год", value=1.0)
+        A_exch = col_a.number_input("Кратність A, 1/год", min_value=0.0, value=8.0)
+        tau_vent = col_t_h.number_input("Час роботи вентиляції τ, год", min_value=0.0, value=1.0)
         K_coeff = A_exch * tau_vent + 1
         st.latex(rf"K = A \cdot \tau + 1 = {K_coeff:.2f}")
     else:
@@ -221,8 +249,8 @@ with st.expander("Крок 3. Врахування вентиляції та р�
         st.latex(rf"m_{{\text{{розр}}}} = \frac{{m}}{{K}} = {m_calc:.3f} \text{{ кг}}")
     
     if st.button("🚀 РОЗРАХУВАТИ ΔP"):
-        if mass_total == 0:
-            st.error("Увага: Розрахункова маса дорівнює нулю.")
+        if mass_total <= 0:
+            st.error("Увага: Розрахункова маса дорівнює нулю або менша за нуль.")
         else:
             rho_g_p = sub_data['M'] / (22.413 * (1 + 0.00367 * t_p_room))
             P_max_const = sub_data['P_max']
