@@ -3,14 +3,14 @@ import pandas as pd
 import math
 
 # --- 1. НАЛАШТУВАННЯ ТА БАЗА ДАНИХ ---
-st.set_page_config(page_title="Categories_V.0.16.3", layout="wide")
+st.set_page_config(page_title="Categories_V.0.16.3.1 (А, Б)", layout="wide")
 
 if 'pipes_gas' not in st.session_state:
     st.session_state.pipes_gas = pd.DataFrame([{"Лінія": "Вхідна", "Довжина L, м": 10.0, "Діаметр d, мм": 50.0, "Тиск P1, кПа": 300.0}])
 if 'pipes_liq' not in st.session_state:
     st.session_state.pipes_liq = pd.DataFrame([{"Лінія": "Вхідна", "Довжина L, м": 10.0, "Діаметр d, мм": 50.0}])
 
-# База абсолютних максимальних температур за ДСТУ-Н Б В.1.1-27:2010 (Дод. 1)
+# База абсолютних максимальних температур за ДСТУ-Н Б В.1.1-27:2010
 CLIMATE_DB = {
     "АР Крим (Сімферополь)": 39.0, "Вінницька обл.": 38.0, "Волинська обл.": 37.0,
     "Дніпропетровська обл.": 40.0, "Донецька обл.": 40.0, "Житомирська обл.": 38.0,
@@ -24,9 +24,10 @@ CLIMATE_DB = {
 }
 
 SUBSTANCES_DB = {
-    "Метан (Природний газ)": {"state": "Газ", "M": 16.04, "C_st": 9.48, "Z": 0.5, "H_T": 50.0, "is_known": True, "P_max": 706.0, "description": "Метан, СН4, горючий газ."},
-    "Етиловий спирт": {"state": "Рідина", "M": 46.07, "C_st": 0.0, "Z": 0.3, "H_T": 26.8, "is_known": True, "P_max": 732.0, "rho_l": 789.0, "A": 7.81158, "B": 1918.508, "C": 252.125, "atoms": {"C": 2, "H": 6, "O": 1, "X": 0}, "description": "Етиловий спирт, C2H5OH. ЛЗР."},
-    "Бензин А-95": {"state": "Рідина", "M": 98.0, "C_st": 0.0, "Z": 0.3, "H_T": 44.0, "is_known": False, "P_max": 900.0, "rho_l": 750.0, "A": 5.95, "B": 1100.0, "C": 230.0, "atoms": {"C": 0, "H": 0, "O": 0, "X": 0}, "description": "Бензин А-95. Суміш вуглеводнів, ЛЗР."}
+    "Метан (Природний газ)": {"state": "Газ", "M": 16.04, "C_st": 9.48, "Z": 0.5, "H_T": 50.0, "is_known": True, "P_max": 706.0, "t_sp": -188.0, "description": "Метан, СН4, горючий газ."},
+    "Етиловий спирт": {"state": "Рідина", "M": 46.07, "C_st": 0.0, "Z": 0.3, "H_T": 26.8, "is_known": True, "P_max": 732.0, "rho_l": 789.0, "A": 7.81158, "B": 1918.508, "C": 252.125, "atoms": {"C": 2, "H": 6, "O": 1, "X": 0}, "t_sp": 13.0, "description": "Етиловий спирт, C2H5OH. ЛЗР."},
+    "Бензин А-95": {"state": "Рідина", "M": 98.0, "C_st": 0.0, "Z": 0.3, "H_T": 44.0, "is_known": False, "P_max": 900.0, "rho_l": 750.0, "A": 5.95, "B": 1100.0, "C": 230.0, "atoms": {"C": 0, "H": 0, "O": 0, "X": 0}, "t_sp": -37.0, "description": "Бензин А-95. Суміш вуглеводнів, ЛЗР."},
+    "Дизельне паливо": {"state": "Рідина", "M": 170.0, "C_st": 0.0, "Z": 0.3, "H_T": 42.7, "is_known": False, "P_max": 900.0, "rho_l": 840.0, "A": 6.1, "B": 1500.0, "C": 200.0, "atoms": {"C": 0, "H": 0, "O": 0, "X": 0}, "t_sp": 55.0, "description": "Дизельне паливо. ГР."}
 }
 
 # --- 2. БІЧНА ПАНЕЛЬ ---
@@ -39,7 +40,6 @@ with st.sidebar:
     
     st.markdown("---")
     st.markdown("**Температура повітря t_p (за ДСТУ)**")
-    
     region = st.selectbox("Регіон розташування об'єкта:", list(CLIMATE_DB.keys()))
     if region == "Інший регіон (ручний ввід)":
         t_clim = st.number_input("Кліматична температура t_клім, °C", value=35.0)
@@ -49,7 +49,6 @@ with st.sidebar:
         
     t_tech = st.number_input("Технологічна температура t_техн, °C", value=30.0)
     
-    # Визначення розрахункової температури та її джерела
     t_p_room = max(t_clim, t_tech)
     if t_clim > t_tech:
         source_text = "Кліматична норма"
@@ -66,7 +65,7 @@ with st.sidebar:
     st.latex(rf"S_{{\text{{прим}}}} = {S_room:.2f} \text{{ м}}^2")
     st.latex(rf"V_{{\text{{в}}}} = {V_v:.2f} \text{{ м}}^3")
 
-st.title("🔥 Модуль розрахунку категорій «Categories_V.0.16.3»")
+st.title("🔥 Модуль розрахунку категорій «Categories_V.0.16.3.1 (А, Б)»")
 
 # --- 3. КРОК 1: ВИБІР РЕЧОВИНИ ---
 with st.expander("Крок 1. Характеристика горючої речовини", expanded=True):
@@ -76,6 +75,13 @@ with st.expander("Крок 1. Характеристика горючої реч
         with col1:
             state = st.radio("Стан:", ["Газ", "Рідина"])
             is_known = st.checkbox("Хімічна формула відома?", value=True)
+            
+            # Поле з'являється тільки для рідин
+            if state == "Рідина":
+                t_sp = st.number_input("Температура спалаху t_сп, °C", value=28.0)
+            else:
+                t_sp = -200.0 # Для газу не має значення в даному контексті
+                
             if is_known:
                 c_a, c_h, c_o, c_x = st.columns(4)
                 n_C = c_a.number_input("C", min_value=0, value=2)
@@ -98,10 +104,10 @@ with st.expander("Крок 1. Характеристика горючої реч
                 B_ant = cB.number_input("B", value=1918.5)
                 C_ant = cC.number_input("C", value=252.1)
                 
-        sub_data = {"state": state, "M": M, "C_st": 0.0, "Z": Z, "H_T": H_T, "is_known": is_known, "P_max": P_max, "rho_l": rho_l, "A": A_ant, "B": B_ant, "C": C_ant, "atoms": atoms}
+        sub_data = {"state": state, "M": M, "C_st": 0.0, "Z": Z, "H_T": H_T, "is_known": is_known, "P_max": P_max, "rho_l": rho_l, "A": A_ant, "B": B_ant, "C": C_ant, "atoms": atoms, "t_sp": t_sp}
     else:
         sub_data = SUBSTANCES_DB[choice]
-        st.success(f"✅ Обрано: **{choice}**")
+        st.success(f"✅ Обрано: **{choice}** (t_сп = {sub_data['t_sp']} °C)")
 
 # --- 4. ПРОМІЖНИЙ РОЗРАХУНОК ---
 with st.expander("📊 Проміжний розрахунок: Фізико-хімічні властивості", expanded=False):
@@ -318,5 +324,15 @@ with st.expander("Крок 3. Врахування вентиляції та р�
                 st.latex(r"\Delta P = (P_{\text{max}} - P_0) \cdot \frac{m_{\text{розр}} \cdot H_{\text{т}} \cdot P_0}{V_{\text{в}} \cdot \rho_{\text{пов}} \cdot C_{\text{п}} \cdot T_0 \cdot K_{\text{н}}}")
             
             st.latex(rf"\Delta P = {dp:.2f} \text{{ кПа}}")
-            if dp > 5.0: st.error(f"🚨 КАТЕГОРІЯ ПРИМІЩЕННЯ: А ({dp:.2f} кПа > 5 кПа)")
-            else: st.success(f"✅ КАТЕГОРІЯ ПРИМІЩЕННЯ: В ({dp:.2f} кПа ≤ 5 кПа)")
+            
+            # --- НОВА ЛОГІКА ДЛЯ КАТЕГОРІЙ А ТА Б ---
+            if dp > 5.0:
+                if sub_data['state'] == "Газ":
+                    st.error("🚨 КАТЕГОРІЯ ПРИМІЩЕННЯ: А (Горючий газ, ΔP > 5 кПа)")
+                else:
+                    if sub_data['t_sp'] <= 28.0:
+                        st.error(f"🚨 КАТЕГОРІЯ ПРИМІЩЕННЯ: А (ЛЗР, t_сп = {sub_data['t_sp']} °C ≤ 28 °C, ΔP > 5 кПа)")
+                    else:
+                        st.warning(f"🚨 КАТЕГОРІЯ ПРИМІЩЕННЯ: Б (ГР або ЛЗР, t_сп = {sub_data['t_sp']} °C > 28 °C, ΔP > 5 кПа)")
+            else:
+                st.success(f"✅ КАТЕГОРІЯ ПРИМІЩЕННЯ: В (ΔP = {dp:.2f} кПа ≤ 5 кПа)")
