@@ -253,3 +253,8 @@ if col_info is not None:
                         </div>""", unsafe_allow_html=True)
                 else:
                     st.success("✅ Загроз населеним пунктам не виявлено")
+
+# Футер
+current_year = datetime.datetime.now().year
+st.markdown("---") 
+st.markdown(f"<p style='text-align: center; color: gray;'><small>© {current_year} Kostiantyn Afanasenko. Всі права захищені.</small></p>", unsafe_allow_html=True)
