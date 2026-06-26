@@ -1,1 +1,15 @@
+name: Keep Streamlit App Awake
 
+on:
+  schedule:
+    # Запускається автоматично кожні 3 дні опівночі (за UTC)
+    - cron: '0 0 */3 * *'
+  workflow_dispatch: # Дозволяє запустити скрипт вручну з інтерфейсу GitHub
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Streamlit App
+        # ЗАМІНІТЬ ПОСИЛАННЯ НА ВАШЕ
+        run: curl -sSf https://nhrv40py-lhaxvq38mqh3aav28lzadq.streamlit.app/ > /dev/null
