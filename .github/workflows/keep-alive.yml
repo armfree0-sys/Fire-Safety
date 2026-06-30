@@ -32,8 +32,8 @@ jobs:
           is_manual = os.environ.get('GITHUB_EVENT_NAME') == 'workflow_dispatch'
           
           if not is_manual:
-              # Генеруємо випадкову затримку від 60 секунд (1 хв) до 1800 секунд (30 хв)
-              delay_seconds = random.randint(60, 1800)
+              # Генеруємо випадкову затримку від 60 секунд (1 хв) до 3600 секунд (60 хв)
+              delay_seconds = random.randint(60, 3600)
               print(f"⏳ Імітація живої людини. Очікуємо {delay_seconds // 60} хв {delay_seconds % 60} сек перед заходом на сайт...")
               time.sleep(delay_seconds)
           else:
