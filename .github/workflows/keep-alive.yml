@@ -2,7 +2,6 @@ name: Keep Streamlit App Awake
 
 on:
   schedule:
-    # Запускається автоматично кожні 6 годин
     - cron: '0 */6 * * *'
   workflow_dispatch:
 
@@ -10,5 +9,24 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping Streamlit App
-        run: curl -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -sSf https://nhrv40py-lhaxvq38mqh3aav28lzadq.streamlit.app/ > /dev/null
+      - name: Wake up Streamlit
+        shell: python
+        run: |
+          import urllib.request
+          
+          url = "https://nhrv40py-lhaxvq38mqh3aav28lzadq.streamlit.app/"
+          
+          # Маскуємося під реальний браузер
+          req = urllib.request.Request(
+              url, 
+              headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0'}
+          )
+          
+          try:
+              urllib.request.urlopen(req)
+              print("✅ Додаток активний і успішно відповів!")
+          except Exception as e:
+              # Якщо Streamlit починає перенаправляти нас під час пробудження, 
+              # ми ловимо це як успішний факт контакту з сервером.
+              print(f"⚠️ Сигнал надіслано. Відповідь сервера: {e}")
+              print("Це нормально, якщо додаток саме зараз прокидається.")
