@@ -6,27 +6,51 @@ on:
   workflow_dispatch:
 
 jobs:
-  ping:
+  keep-alive:
     runs-on: ubuntu-latest
     steps:
-      - name: Wake up Streamlit
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install Playwright
+        run: |
+          python -m pip install --upgrade pip
+          pip install playwright
+          playwright install chromium
+
+      - name: Run Headless Browser
         shell: python
         run: |
-          import urllib.request
+          from playwright.sync_api import sync_playwright
           
           url = "https://nhrv40py-lhaxvq38mqh3aav28lzadq.streamlit.app/"
           
-          # Маскуємося під реальний браузер
-          req = urllib.request.Request(
-              url, 
-              headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0'}
-          )
-          
-          try:
-              urllib.request.urlopen(req)
-              print("✅ Додаток активний і успішно відповів!")
-          except Exception as e:
-              # Якщо Streamlit починає перенаправляти нас під час пробудження, 
-              # ми ловимо це як успішний факт контакту з сервером.
-              print(f"⚠️ Сигнал надіслано. Відповідь сервера: {e}")
-              print("Це нормально, якщо додаток саме зараз прокидається.")
+          with sync_playwright() as p:
+              # Запускаємо невидимий Chrome
+              browser = p.chromium.launch(headless=True)
+              page = browser.new_page()
+              
+              print(f"Відвідуємо {url}...")
+              
+              try:
+                  # Переходимо на сторінку і чекаємо, поки вона повністю завантажиться
+                  page.goto(url, wait_until="networkidle", timeout=60000)
+                  
+                  # Шукаємо кнопку пробудження (як на вашому скріншоті)
+                  wake_button = page.locator("button:has-text('Yes, get this app back up!')")
+                  
+                  if wake_button.is_visible():
+                      print("💤 Додаток спить. Натискаємо кнопку пробудження...")
+                      wake_button.click()
+                      # Чекаємо 10 секунд, щоб сервер Streamlit встиг запустити контейнер
+                      page.wait_for_timeout(10000)
+                      print("✅ Пробудження ініційовано!")
+                  else:
+                      print("✅ Додаток активний! З'єднання з JavaScript встановлено.")
+                      
+              except Exception as e:
+                  print(f"⚠️ Виникла помилка під час виконання: {e}")
+              finally:
+                  browser.close()
