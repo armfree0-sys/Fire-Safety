@@ -3,7 +3,7 @@ name: Keep Streamlit App Awake
 on:
   schedule:
     - cron: '0 */6 * * *'
-  workflow_dispatch:
+  workflow_dispatch: # Ручний запуск
 
 jobs:
   keep-alive:
@@ -20,11 +20,25 @@ jobs:
           pip install playwright
           playwright install chromium
 
-      - name: Run Headless Browser
+      - name: Run Headless Browser with Random Delay
         shell: python
         run: |
+          import time
+          import random
           from playwright.sync_api import sync_playwright
+          import os
           
+          # Якщо скрипт запущено вручну (через кнопку), не чекаємо
+          is_manual = os.environ.get('GITHUB_EVENT_NAME') == 'workflow_dispatch'
+          
+          if not is_manual:
+              # Генеруємо випадкову затримку від 60 секунд (1 хв) до 1800 секунд (30 хв)
+              delay_seconds = random.randint(60, 1800)
+              print(f"⏳ Імітація живої людини. Очікуємо {delay_seconds // 60} хв {delay_seconds % 60} сек перед заходом на сайт...")
+              time.sleep(delay_seconds)
+          else:
+              print("🚀 Ручний запуск виявлено. Пропускаємо паузу.")
+
           url = "https://nhrv40py-lhaxvq38mqh3aav28lzadq.streamlit.app/"
           
           with sync_playwright() as p:
@@ -32,19 +46,18 @@ jobs:
               browser = p.chromium.launch(headless=True)
               page = browser.new_page()
               
-              print(f"Відвідуємо {url}...")
+              print(f"🌐 Відвідуємо {url}...")
               
               try:
-                  # Переходимо на сторінку і чекаємо, поки вона повністю завантажиться
+                  # Переходимо на сторінку і чекаємо повного завантаження
                   page.goto(url, wait_until="networkidle", timeout=60000)
                   
-                  # Шукаємо кнопку пробудження (як на вашому скріншоті)
+                  # Шукаємо кнопку пробудження
                   wake_button = page.locator("button:has-text('Yes, get this app back up!')")
                   
                   if wake_button.is_visible():
                       print("💤 Додаток спить. Натискаємо кнопку пробудження...")
                       wake_button.click()
-                      # Чекаємо 10 секунд, щоб сервер Streamlit встиг запустити контейнер
                       page.wait_for_timeout(10000)
                       print("✅ Пробудження ініційовано!")
                   else:
