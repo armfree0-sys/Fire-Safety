@@ -172,6 +172,35 @@ def create_isochrone_geojsons(lat, lon, max_radius_km, wind_azimuth, v_wind):
         
     return {"type": "FeatureCollection", "features": features}
 
+def create_primary_geojson(lat, lon, max_radius_km, wind_azimuth, v_wind):
+    cloud_dir = (wind_azimuth + 180) % 360
+    angle = get_sector_angle(v_wind)
+    half_a = angle / 2
+    
+    points = []
+    if angle < 360:
+        points.append([lon, lat])
+        
+    for i in range(51):
+        step_a = math.radians(cloud_dir - half_a + (angle * i / 50))
+        dx = (max_radius_km / 111.32) * math.sin(step_a) / math.cos(math.radians(lat))
+        dy = (max_radius_km / 110.57) * math.cos(step_a)
+        points.append([lon + dx, lat + dy])
+        
+    if angle < 360:
+        points.append([lon, lat])
+    else:
+        points.append(points[0])
+        
+    return {
+        "type": "FeatureCollection",
+        "features": [{
+            "type": "Feature",
+            "properties": {"label": "Первинна хмара (Ударна хвиля)"},
+            "geometry": {"type": "Polygon", "coordinates": [points]}
+        }]
+    }
+
 def find_settlements(lat, lon, radius_km, wind_dir, v_wind):
     overpass_url = "http://overpass-api.de/api/interpreter"
     query = f"""[out:json];node["place"~"city|town|village|hamlet"](around:{radius_km*1000},{lat},{lon});out;"""
@@ -238,11 +267,8 @@ with st.sidebar:
         
         st.markdown("---")
         st.markdown("#### 🗺️ Шари карти")
-        map_layer = st.radio("Відображати на карті:", [
-            "Загальна зона (Г_повн)",
-            "Первинна хмара (Г1)",
-            "Вторинна хмара (Г2)"
-        ])
+        show_total = st.checkbox("Загальна зона ураження (Ізохрони)", value=True)
+        show_primary = st.checkbox("Первинна хмара (Монохромний контур)", value=True)
 
     with tabs[1]:
         if st.button("🔄 Отримати метеодані (API)", type="primary", use_container_width=True):
@@ -264,13 +290,10 @@ with st.sidebar:
 # --- РОЗРАХУНОК ---
 res = calculate_zone(sub_name, qty, spill, storage, v_wind, stab, t_air, terrain, time_hrs)
 
-# ВИБІР АКТИВНОЇ ЗОНИ ДЛЯ ВІДОБРАЖЕННЯ
-if map_layer == "Загальна зона (Г_повн)":
-    active_g = res['g_full']
-elif map_layer == "Первинна хмара (Г1)":
-    active_g = res['g1']
-else:
-    active_g = res['g2']
+# ВИБІР АКТИВНОЇ ЗОНИ ДЛЯ АНАЛІЗУ
+active_g = 0.0
+if show_total: active_g = max(active_g, res['g_full'])
+if show_primary: active_g = max(active_g, res['g1'])
 
 # --- ВІДОБРАЖЕННЯ ---
 if show_analytics:
@@ -279,17 +302,33 @@ else:
     col_map, col_info = st.container(), None
 
 with col_map:
-    st.markdown(f"### 🗺️ Оперативна карта | {map_layer}: {active_g:.2f} км")
+    st.markdown(f"### 🗺️ Оперативна карта | Відображена глибина: {active_g:.2f} км")
     
     m = folium.Map(location=[st.session_state.lat, st.session_state.lon], zoom_start=st.session_state.zoom, 
                    tiles="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}&hl=uk", attr="Google")
     
-    if active_g > 0:
-        geojson_data = create_isochrone_geojsons(st.session_state.lat, st.session_state.lon, active_g, w_dir, v_wind)
+    # 1. Малюємо загальну зону (Вторинна хмара + Ізохрони)
+    if show_total and res['g_full'] > 0:
+        geojson_data = create_isochrone_geojsons(st.session_state.lat, st.session_state.lon, res['g_full'], w_dir, v_wind)
         folium.GeoJson(
             geojson_data, 
             style_function=lambda f: {'fillColor': f['properties']['color'], 'color': f['properties']['color'], 'weight': 1, 'fillOpacity': 0.4},
             tooltip=folium.GeoJsonTooltip(fields=['time_label'], aliases=['Зона:'])
+        ).add_to(m)
+
+    # 2. Малюємо первинну хмару (Монохромний шар поверх ізохрон)
+    if show_primary and res['g1'] > 0:
+        geojson_primary = create_primary_geojson(st.session_state.lat, st.session_state.lon, res['g1'], w_dir, v_wind)
+        folium.GeoJson(
+            geojson_primary,
+            style_function=lambda f: {
+                'fillColor': '#555555', 
+                'color': '#000000', 
+                'weight': 3, 
+                'fillOpacity': 0.3, 
+                'dashArray': '10, 10' # Робить лінію пунктирною
+            },
+            tooltip=folium.GeoJsonTooltip(fields=['label'], aliases=['Шар:'])
         ).add_to(m)
         
     folium.Marker([st.session_state.lat, st.session_state.lon], icon=folium.Icon(color='red', icon='info-sign')).add_to(m)
@@ -326,7 +365,7 @@ if col_info:
         st.markdown("</div>", unsafe_allow_html=True)
         
         st.markdown("---")
-        if st.button(f"🔍 Знайти загрозу ({map_layer})", use_container_width=True):
+        if st.button("🔍 Знайти загрозу для обраних шарів", use_container_width=True):
             with st.spinner("Аналіз топографії..."):
                 places = find_settlements(st.session_state.lat, st.session_state.lon, active_g, w_dir, v_wind)
                 if places:
