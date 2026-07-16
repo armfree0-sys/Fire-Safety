@@ -148,13 +148,21 @@ def create_isochrone_geojsons(lat, lon, max_radius_km, wind_azimuth, v_wind):
         r_km = (t * 60 * v_wind_safe_time) / 1000
         if r_km > max_radius_km: r_km = max_radius_km
             
-        points = [[lon, lat]]
+        points = []
+        # Топологічне виправлення: для кола 360 градусів НЕ ведемо лінію з центру
+        if angle < 360:
+            points.append([lon, lat])
+            
         for i in range(51):
             step_a = math.radians(cloud_dir - half_a + (angle * i / 50))
             dx = (r_km / 111.32) * math.sin(step_a) / math.cos(math.radians(lat))
             dy = (r_km / 110.57) * math.cos(step_a)
             points.append([lon + dx, lat + dy])
-        points.append([lon, lat])
+            
+        if angle < 360:
+            points.append([lon, lat]) # Для секторів повертаємось у стартову точку
+        else:
+            points.append(points[0]) # Для кола просто замикаємо периметр плавно
         
         features.append({
             "type": "Feature",
@@ -227,6 +235,14 @@ with st.sidebar:
         spill = st.radio("Характер розливу", ["Вільний", "У піддон"], horizontal=True)
         terrain = st.radio("Топографія місцевості", ["Відкрита місцевість", "Міська забудова / Ліс"])
         time_hrs = st.slider("Час прогнозування (годин)", 1, 24, 4)
+        
+        st.markdown("---")
+        st.markdown("#### 🗺️ Шари карти")
+        map_layer = st.radio("Відображати на карті:", [
+            "Загальна зона (Г_повн)",
+            "Первинна хмара (Г1)",
+            "Вторинна хмара (Г2)"
+        ])
 
     with tabs[1]:
         if st.button("🔄 Отримати метеодані (API)", type="primary", use_container_width=True):
@@ -248,6 +264,14 @@ with st.sidebar:
 # --- РОЗРАХУНОК ---
 res = calculate_zone(sub_name, qty, spill, storage, v_wind, stab, t_air, terrain, time_hrs)
 
+# ВИБІР АКТИВНОЇ ЗОНИ ДЛЯ ВІДОБРАЖЕННЯ
+if map_layer == "Загальна зона (Г_повн)":
+    active_g = res['g_full']
+elif map_layer == "Первинна хмара (Г1)":
+    active_g = res['g1']
+else:
+    active_g = res['g2']
+
 # --- ВІДОБРАЖЕННЯ ---
 if show_analytics:
     col_map, col_info = st.columns([6.5, 3.5])
@@ -255,13 +279,13 @@ else:
     col_map, col_info = st.container(), None
 
 with col_map:
-    st.markdown(f"### 🗺️ Оперативна карта | Загальна глибина: {res['g_full']:.2f} км")
+    st.markdown(f"### 🗺️ Оперативна карта | {map_layer}: {active_g:.2f} км")
     
     m = folium.Map(location=[st.session_state.lat, st.session_state.lon], zoom_start=st.session_state.zoom, 
                    tiles="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}&hl=uk", attr="Google")
     
-    if res['g_full'] > 0:
-        geojson_data = create_isochrone_geojsons(st.session_state.lat, st.session_state.lon, res['g_full'], w_dir, v_wind)
+    if active_g > 0:
+        geojson_data = create_isochrone_geojsons(st.session_state.lat, st.session_state.lon, active_g, w_dir, v_wind)
         folium.GeoJson(
             geojson_data, 
             style_function=lambda f: {'fillColor': f['properties']['color'], 'color': f['properties']['color'], 'weight': 1, 'fillOpacity': 0.4},
@@ -302,9 +326,9 @@ if col_info:
         st.markdown("</div>", unsafe_allow_html=True)
         
         st.markdown("---")
-        if st.button("🔍 Знайти загрозу для населених пунктів", use_container_width=True):
+        if st.button(f"🔍 Знайти загрозу ({map_layer})", use_container_width=True):
             with st.spinner("Аналіз топографії..."):
-                places = find_settlements(st.session_state.lat, st.session_state.lon, res['g_full'], w_dir, v_wind)
+                places = find_settlements(st.session_state.lat, st.session_state.lon, active_g, w_dir, v_wind)
                 if places:
                     for p in places:
                         st.markdown(f"""<div class="settlement-card">
