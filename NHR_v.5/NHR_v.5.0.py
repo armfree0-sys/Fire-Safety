@@ -4,8 +4,6 @@ import folium
 from streamlit_folium import st_folium
 import requests
 
-# --- V.5.2.2 Боремося з опенметео ---
-
 # --- 1. БАЗА ДАНИХ ТА КОНСТАНТИ ---
 
 # Розширена база речовин (Додаток 2)
@@ -44,11 +42,20 @@ def interpolate_value(val, data_dict):
             y1, y2 = data_dict[x1], data_dict[x2]
             return y1 + (val - x1) * (y2 - y1) / (x2 - x1)
 
+@st.cache_data(ttl=300, show_spinner=False) # Кешування результату на 5 хвилин
 def get_realtime_weather(lat, lon):
-    url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current=temperature_2m,wind_speed_10m,cloud_cover,is_day,wind_direction_10m&timezone=auto"
+    # ПРИБРАНО &timezone=auto ЩОБ УНИКНУТИ БЛОКУВАННЯ ПОМИЛКОЮ 429
+    url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current=temperature_2m,wind_speed_10m,cloud_cover,is_day,wind_direction_10m"
+    # Додаємо "паспорт" запиту, щоб сервер не вважав нас ботом
+    headers = {"User-Agent": "NHR_Tactical_Simulator/5.0"}
     try:
-        response = requests.get(url, timeout=5)
-        response.raise_for_status() # Перевірка на помилки мережі (напр. 400 Bad Request)
+        response = requests.get(url, headers=headers, timeout=5)
+        
+        # Якщо сервер все ж перевантажений (429), повертаємо False (тиха відмова, як у V4.2)
+        if response.status_code == 429:
+            return {"success": False}
+            
+        response.raise_for_status()
         data = response.json()["current"]
         wind_ms = data["wind_speed_10m"] / 3.6
         clouds = data["cloud_cover"]
@@ -65,8 +72,9 @@ def get_realtime_weather(lat, lon):
             "dir": data["wind_direction_10m"], 
             "stability": stability
         }
-    except Exception as e: 
-        return {"success": False, "error": str(e)}
+    except: 
+        # Будь-яка інша помилка - тиха відмова, щоб не ламати інтерфейс
+        return {"success": False}
 
 def calculate_zone(sub_name, q0, spill_type, storage_type, v_wind, stability, t_air, terrain, time_hrs):
     sub = SUBSTANCES[sub_name]
@@ -292,7 +300,8 @@ with st.sidebar:
                     st.session_state.w_dir_val = int(res['dir'])
                     st.session_state.stab_val = res['stability']
                 else:
-                    st.error(f"Помилка API: {res.get('error', 'Невідома помилка')}")
+                    # Акуратне спливаюче повідомлення замість великої червоної помилки
+                    st.toast("⚠️ Метеосервер тимчасово зайнятий. Спробуйте через хвилину.")
         
         t_air = st.slider("Температура (°C)", -40.0, 40.0, key="t_air_val")
         v_wind = st.slider("Вітер (м/с)", 0.1, 15.0, key="v_wind_val")
