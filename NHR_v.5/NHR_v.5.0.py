@@ -44,7 +44,7 @@ def interpolate_value(val, data_dict):
 
 # Перенесено логіку запиту з версії 4.2
 def get_realtime_weather(lat, lon):
-    url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current=wind_speed_10m,cloud_cover,is_day,wind_direction_10m"
+    url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current=temperature_2m,wind_speed_10m,cloud_cover,is_day,wind_direction_10m"
     try:
         response = requests.get(url, timeout=5)
         data = response.json()["current"]
@@ -56,7 +56,7 @@ def get_realtime_weather(lat, lon):
         elif is_day == 1: stability = "Конвекція" if (wind_ms < 3 or clouds < 50) else "Ізотермія"
         else: stability = "Інверсія" if (wind_ms < 3 or clouds < 50) else "Ізотермія"
             
-        return {"success": True, "wind": wind_ms, "dir": data["wind_direction_10m"], "stability": stability}
+        return {"success": True, "wind": wind_ms, "temp": data["temperature_2m"], "dir": data["wind_direction_10m"], "stability": stability}
     except: return {"success": False}
 
 def calculate_zone(sub_name, q0, spill_type, storage_type, v_wind, stability, t_air, terrain, time_hrs):
