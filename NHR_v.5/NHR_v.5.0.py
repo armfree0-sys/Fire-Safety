@@ -42,7 +42,7 @@ def interpolate_value(val, data_dict):
             y1, y2 = data_dict[x1], data_dict[x2]
             return y1 + (val - x1) * (y2 - y1) / (x2 - x1)
 
-# Точна копія логіки з V4.2 (тільки додано temperature_2m в URL)
+# Перенесено логіку запиту з версії 4.2
 def get_realtime_weather(lat, lon):
     url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current=temperature_2m,wind_speed_10m,cloud_cover,is_day,wind_direction_10m"
     try:
