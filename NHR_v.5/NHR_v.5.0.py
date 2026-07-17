@@ -4,6 +4,8 @@ import folium
 from streamlit_folium import st_folium
 import requests
 
+# --- У ВЕРСІЇ 5.2.1 додано віджет із напрямком вітру на карті ---
+
 # --- 1. БАЗА ДАНИХ ТА КОНСТАНТИ ---
 
 # Розширена база речовин (Додаток 2)
@@ -306,6 +308,41 @@ with col_map:
     
     m = folium.Map(location=[st.session_state.lat, st.session_state.lon], zoom_start=st.session_state.zoom, 
                    tiles="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}&hl=uk", attr="Google")
+    
+    # --- ВІДЖЕТ ПОГОДИ НА КАРТІ ---
+    weather_widget_html = f"""
+    <div style="
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        z-index: 9999;
+        background-color: rgba(255, 255, 255, 0.95);
+        padding: 10px;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        font-family: Arial, sans-serif;
+        color: #333;
+        min-width: 110px;
+    ">
+        <div style="font-weight: bold; margin-bottom: 5px; border-bottom: 1px solid #ccc; padding-bottom: 3px; font-size: 14px;">
+            🌤️ Погода
+        </div>
+        <div style="font-size: 13px; margin-bottom: 3px;">
+            🌡️ <b>{t_air}</b> °C
+        </div>
+        <div style="font-size: 13px; margin-bottom: 8px;">
+            💨 <b>{v_wind}</b> м/с
+        </div>
+        <div style="text-align: center; background: #f8f9fa; border-radius: 4px; padding: 4px; border: 1px solid #eee;">
+            <div style="font-size: 10px; color: #666; margin-bottom: 2px;">Напрямок хмари ({w_dir}°)</div>
+            <div style="transform: rotate({w_dir}deg); font-size: 22px; color: #ff4b4b; line-height: 1; text-shadow: 1px 1px 2px rgba(0,0,0,0.2);">
+                ⬇
+            </div>
+        </div>
+    </div>
+    """
+    m.get_root().html.add_child(folium.Element(weather_widget_html))
+    # --------------------------------
     
     # 1. Малюємо загальну зону (Вторинна хмара + Ізохрони)
     if show_total and res['g_full'] > 0:
