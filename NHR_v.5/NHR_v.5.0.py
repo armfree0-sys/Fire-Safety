@@ -42,20 +42,11 @@ def interpolate_value(val, data_dict):
             y1, y2 = data_dict[x1], data_dict[x2]
             return y1 + (val - x1) * (y2 - y1) / (x2 - x1)
 
-@st.cache_data(ttl=300, show_spinner=False) # Кешування результату на 5 хвилин
+# Точна копія логіки з V4.2 (тільки додано temperature_2m в URL)
 def get_realtime_weather(lat, lon):
-    # ПРИБРАНО &timezone=auto ЩОБ УНИКНУТИ БЛОКУВАННЯ ПОМИЛКОЮ 429
     url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current=temperature_2m,wind_speed_10m,cloud_cover,is_day,wind_direction_10m"
-    # Додаємо "паспорт" запиту, щоб сервер не вважав нас ботом
-    headers = {"User-Agent": "NHR_Tactical_Simulator/5.0"}
     try:
-        response = requests.get(url, headers=headers, timeout=5)
-        
-        # Якщо сервер все ж перевантажений (429), повертаємо False (тиха відмова, як у V4.2)
-        if response.status_code == 429:
-            return {"success": False}
-            
-        response.raise_for_status()
+        response = requests.get(url, timeout=5)
         data = response.json()["current"]
         wind_ms = data["wind_speed_10m"] / 3.6
         clouds = data["cloud_cover"]
@@ -73,7 +64,6 @@ def get_realtime_weather(lat, lon):
             "stability": stability
         }
     except: 
-        # Будь-яка інша помилка - тиха відмова, щоб не ламати інтерфейс
         return {"success": False}
 
 def calculate_zone(sub_name, q0, spill_type, storage_type, v_wind, stability, t_air, terrain, time_hrs):
@@ -243,192 +233,4 @@ st.markdown("""
     .main { background-color: #0E1117; }
     .block-container { padding-top: 1rem; }
     [data-testid="stMetricContainer"] {
-        background-color: #1E1E1E; border: 1px solid #333; padding: 10px; border-radius: 8px;
-    }
-    .metric-primary { border-left: 4px solid #FF4B4B; }
-    .metric-secondary { border-left: 4px solid #FF8C00; }
-    .metric-total { border-left: 4px solid #00C853; background-color: #122116 !important; }
-    .settlement-card { background-color: #262730; padding: 10px; border-radius: 5px; margin-bottom: 5px; border-left: 3px solid #f63366; }
-    </style>
-""", unsafe_allow_html=True)
-
-if 'lat' not in st.session_state: st.session_state.lat, st.session_state.lon = 49.4444, 32.0597
-if 'weather' not in st.session_state: st.session_state.weather = None
-if 'zoom' not in st.session_state: st.session_state.zoom = 11
-
-# ДОДАЄМО СЕСІЙНІ КЛЮЧІ ДЛЯ ПРИМУСОВОГО КЕРУВАННЯ ПОВЗУНКАМИ
-if 't_air_val' not in st.session_state: st.session_state.t_air_val = 20.0
-if 'v_wind_val' not in st.session_state: st.session_state.v_wind_val = 3.0
-if 'w_dir_val' not in st.session_state: st.session_state.w_dir_val = 0
-if 'stab_val' not in st.session_state: st.session_state.stab_val = "Ізотермія"
-
-with st.sidebar:
-    st.title("НХР V.5.0 (Тактичний)")
-    show_analytics = st.toggle("📊 Панель аналітики", value=True)
-    st.markdown("---")
-    
-    tabs = st.tabs(["🧪 Об'єкт", "🌤 Погода"])
-    
-    with tabs[0]:
-        sub_name = st.selectbox("Речовина", list(SUBSTANCES.keys()))
-        qty = st.number_input("Маса викиду (т)", 0.1, 10000.0, 10.0)
-        
-        if SUBSTANCES[sub_name]["is_gas"]:
-            storage = st.radio("Тип резервуара", ["Під тиском", "Ізотермічний"])
-        else:
-            storage = "Рідина"
-            st.info("💧 Речовина зберігається у рідкому стані (без тиску).")
-            
-        spill = st.radio("Характер розливу", ["Вільний", "У піддон"], horizontal=True)
-        terrain = st.radio("Топографія місцевості", ["Відкрита місцевість", "Міська забудова / Ліс"])
-        time_hrs = st.slider("Час прогнозування (годин)", 1, 24, 4)
-        
-        st.markdown("---")
-        st.markdown("#### 🗺️ Шари карти")
-        show_total = st.checkbox("Загальна зона ураження (Ізохрони)", value=True)
-        show_primary = st.checkbox("Первинна хмара (Монохромний контур)", value=True)
-
-    with tabs[1]:
-        if st.button("🔄 Отримати метеодані (API)", type="primary", use_container_width=True):
-            with st.spinner("З'єднання з метеосупутником..."):
-                res = get_realtime_weather(st.session_state.lat, st.session_state.lon)
-                if res["success"]: 
-                    st.session_state.weather = res
-                    # ПРИМУСОВО ПЕРЕЗАПИСУЄМО ЗНАЧЕННЯ ВІДЖЕТІВ
-                    st.session_state.t_air_val = float(res['temp'])
-                    st.session_state.v_wind_val = float(res['wind'])
-                    st.session_state.w_dir_val = int(res['dir'])
-                    st.session_state.stab_val = res['stability']
-                else:
-                    # Акуратне спливаюче повідомлення замість великої червоної помилки
-                    st.toast("⚠️ Метеосервер тимчасово зайнятий. Спробуйте через хвилину.")
-        
-        t_air = st.slider("Температура (°C)", -40.0, 40.0, key="t_air_val")
-        v_wind = st.slider("Вітер (м/с)", 0.1, 15.0, key="v_wind_val")
-        w_dir = st.slider("Напрямок (°)", 0, 360, key="w_dir_val")
-        stab = st.selectbox("СВША", list(ATMOSPHERE_STABILITY.keys()), key="stab_val")
-
-# --- РОЗРАХУНОК ---
-res = calculate_zone(sub_name, qty, spill, storage, v_wind, stab, t_air, terrain, time_hrs)
-
-# ВИБІР АКТИВНОЇ ЗОНИ ДЛЯ АНАЛІЗУ
-active_g = 0.0
-if show_total: active_g = max(active_g, res['g_full'])
-if show_primary: active_g = max(active_g, res['g1'])
-
-# --- ВІДОБРАЖЕННЯ ---
-if show_analytics:
-    col_map, col_info = st.columns([6.5, 3.5])
-else:
-    col_map, col_info = st.container(), None
-
-with col_map:
-    st.markdown(f"### 🗺️ Оперативна карта | Відображена глибина: {active_g:.2f} км")
-    
-    m = folium.Map(location=[st.session_state.lat, st.session_state.lon], zoom_start=st.session_state.zoom, 
-                   tiles="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}&hl=uk", attr="Google")
-    
-    # --- ВІДЖЕТ ПОГОДИ НА КАРТІ ---
-    weather_widget_html = f"""
-    <div style="
-        position: absolute;
-        top: 15px;
-        right: 15px;
-        z-index: 9999;
-        background-color: rgba(255, 255, 255, 0.95);
-        padding: 10px;
-        border-radius: 8px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-        font-family: Arial, sans-serif;
-        color: #333;
-        min-width: 110px;
-    ">
-        <div style="font-weight: bold; margin-bottom: 5px; border-bottom: 1px solid #ccc; padding-bottom: 3px; font-size: 14px;">
-            🌤️ Погода
-        </div>
-        <div style="font-size: 13px; margin-bottom: 3px;">
-            🌡️ <b>{t_air}</b> °C
-        </div>
-        <div style="font-size: 13px; margin-bottom: 8px;">
-            💨 <b>{v_wind}</b> м/с
-        </div>
-        <div style="text-align: center; background: #f8f9fa; border-radius: 4px; padding: 4px; border: 1px solid #eee;">
-            <div style="font-size: 10px; color: #666; margin-bottom: 2px;">Напрямок хмари ({w_dir}°)</div>
-            <div style="transform: rotate({w_dir}deg); font-size: 22px; color: #ff4b4b; line-height: 1; text-shadow: 1px 1px 2px rgba(0,0,0,0.2);">
-                ⬇
-            </div>
-        </div>
-    </div>
-    """
-    m.get_root().html.add_child(folium.Element(weather_widget_html))
-    # --------------------------------
-    
-    # 1. Малюємо загальну зону (Вторинна хмара + Ізохрони)
-    if show_total and res['g_full'] > 0:
-        geojson_data = create_isochrone_geojsons(st.session_state.lat, st.session_state.lon, res['g_full'], w_dir, v_wind)
-        folium.GeoJson(
-            geojson_data, 
-            style_function=lambda f: {'fillColor': f['properties']['color'], 'color': f['properties']['color'], 'weight': 1, 'fillOpacity': 0.4},
-            tooltip=folium.GeoJsonTooltip(fields=['time_label'], aliases=['Зона:'])
-        ).add_to(m)
-
-    # 2. Малюємо первинну хмару (Монохромний шар поверх ізохрон)
-    if show_primary and res['g1'] > 0:
-        geojson_primary = create_primary_geojson(st.session_state.lat, st.session_state.lon, res['g1'], w_dir, v_wind)
-        folium.GeoJson(
-            geojson_primary,
-            style_function=lambda f: {
-                'fillColor': '#555555', 
-                'color': '#000000', 
-                'weight': 3, 
-                'fillOpacity': 0.3, 
-                'dashArray': '10, 10' # Робить лінію пунктирною
-            },
-            tooltip=folium.GeoJsonTooltip(fields=['label'], aliases=['Шар:'])
-        ).add_to(m)
-        
-    folium.Marker([st.session_state.lat, st.session_state.lon], icon=folium.Icon(color='red', icon='info-sign')).add_to(m)
-    map_res = st_folium(m, use_container_width=True, height=700, key="v5_map")
-    
-    if map_res:
-        if map_res.get("last_clicked"):
-            nl, nn = map_res["last_clicked"]["lat"], map_res["last_clicked"]["lng"]
-            if nl != st.session_state.lat:
-                st.session_state.lat, st.session_state.lon = nl, nn
-                st.rerun()
-        if map_res.get("zoom"): st.session_state.zoom = map_res["zoom"]
-
-if col_info:
-    with col_info:
-        st.markdown("### 📊 Тактичне зведення")
-        
-        st.markdown("<div class='metric-primary'>", unsafe_allow_html=True)
-        st.caption("💥 ПЕРВИННА ХМАРА (Ударна хвиля)")
-        c1, c2 = st.columns(2)
-        c1.metric("Фактична маса", f"{res['q1']:.2f} т")
-        c2.metric("Глибина (Г1)", f"{res['g1']:.2f} км")
-        st.markdown("</div>", unsafe_allow_html=True)
-        
-        st.markdown("<div class='metric-secondary' style='margin-top:10px;'>", unsafe_allow_html=True)
-        st.caption("♨️ ВТОРИННА ХМАРА (Випаровування)")
-        c3, c4 = st.columns(2)
-        c3.metric("Час випаровування", f"{res['t_evap']:.1f} год")
-        c4.metric("Глибина (Г2)", f"{res['g2']:.2f} км")
-        st.markdown("</div>", unsafe_allow_html=True)
-        
-        st.markdown("<div class='metric-total' style='margin-top:10px;'>", unsafe_allow_html=True)
-        st.metric("🚨 ЗАГАЛЬНА ГЛИБИНА УРАЖЕННЯ", f"{res['g_full']:.2f} км")
-        st.markdown("</div>", unsafe_allow_html=True)
-        
-        st.markdown("---")
-        if st.button("🔍 Знайти загрозу для обраних шарів", use_container_width=True):
-            with st.spinner("Аналіз топографії..."):
-                places = find_settlements(st.session_state.lat, st.session_state.lon, active_g, w_dir, v_wind)
-                if places:
-                    for p in places:
-                        st.markdown(f"""<div class="settlement-card">
-                            <b>{p['name']}</b><br>
-                            Відстань: {p['dist']} км | Час прибуття: ~{p['time']} хв
-                        </div>""", unsafe_allow_html=True)
-                else:
-                    st.success("✅ Населених пунктів у зоні не виявлено")
+        background-color: #1E1E1E; border: 1px
