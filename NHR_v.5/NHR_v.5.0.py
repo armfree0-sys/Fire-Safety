@@ -246,21 +246,21 @@ if 'w_dir_val' not in st.session_state: st.session_state.w_dir_val = 0
 if 'stab_val' not in st.session_state: st.session_state.stab_val = "Ізотермія"
 
 with st.sidebar:
-    st.title("НХР V.5.0 (Тактичний)")
-    show_analytics = st.toggle("📊 Панель аналітики", value=True)
+    st.title("НХР V.5.2.2 (Прогнозування)")
+    show_analytics = st.toggle("📊 Панель аналітики", value=False)
     st.markdown("---")
     
-    tabs = st.tabs(["🧪 Об'єкт", "🌤 Погода"])
+    tabs = st.tabs(["🧪 Параметри викиду", "🌤 Атмосферні дані"])
     
     with tabs[0]:
         sub_name = st.selectbox("Речовина", list(SUBSTANCES.keys()))
         qty = st.number_input("Маса викиду (т)", 0.1, 10000.0, 10.0)
         
         if SUBSTANCES[sub_name]["is_gas"]:
-            storage = st.radio("Тип резервуара", ["Під тиском", "Ізотермічний"])
+            storage = st.radio("Тип ємності", ["Під тиском", "Ізотермічний"])
         else:
             storage = "Рідина"
-            st.info("💧 Речовина зберігається у рідкому стані (без тиску).")
+            st.info("💧 Речовина зберігається у рідкому стані (тиск близький до атмосферного).")
             
         spill = st.radio("Характер розливу", ["Вільний", "У піддон"], horizontal=True)
         terrain = st.radio("Топографія місцевості", ["Відкрита місцевість", "Міська забудова / Ліс"])
@@ -326,16 +326,16 @@ with col_map:
         min-width: 110px;
     ">
         <div style="font-weight: bold; margin-bottom: 5px; border-bottom: 1px solid #ccc; padding-bottom: 3px; font-size: 14px;">
-            🌤️ Погода
+            🌤️ Погодні умови
         </div>
         <div style="font-size: 13px; margin-bottom: 3px;">
             🌡️ <b>{t_air}</b> °C
         </div>
         <div style="font-size: 13px; margin-bottom: 8px;">
-            💨 <b>{v_wind}</b> м/с
+            💨 <b>{v_wind:.1f}</b> м/с
         </div>
         <div style="text-align: center; background: #f8f9fa; border-radius: 4px; padding: 4px; border: 1px solid #eee;">
-            <div style="font-size: 10px; color: #666; margin-bottom: 2px;">Напрямок хмари ({w_dir}°)</div>
+            <div style="font-size: 10px; color: #666; margin-bottom: 2px;">Напрямок вітру ({w_dir}°)</div>
             <div style="transform: rotate({w_dir}deg); font-size: 22px; color: #ff4b4b; line-height: 1; text-shadow: 1px 1px 2px rgba(0,0,0,0.2);">
                 ⬇
             </div>
