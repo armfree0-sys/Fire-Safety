@@ -4,8 +4,6 @@ import folium
 from streamlit_folium import st_folium
 import requests
 
-# --- У ВЕРСІЇ 5.2.1 додано віджет із напрямком вітру на карті ---
-
 # --- 1. БАЗА ДАНИХ ТА КОНСТАНТИ ---
 
 # Розширена база речовин (Додаток 2)
@@ -45,9 +43,10 @@ def interpolate_value(val, data_dict):
             return y1 + (val - x1) * (y2 - y1) / (x2 - x1)
 
 def get_realtime_weather(lat, lon):
-    url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current=temperature_2m,wind_speed_10m,cloud_cover,is_day,wind_direction_10m"
+    url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current=temperature_2m,wind_speed_10m,cloud_cover,is_day,wind_direction_10m&timezone=auto"
     try:
         response = requests.get(url, timeout=5)
+        response.raise_for_status() # Перевірка на помилки мережі (напр. 400 Bad Request)
         data = response.json()["current"]
         wind_ms = data["wind_speed_10m"] / 3.6
         clouds = data["cloud_cover"]
@@ -64,7 +63,8 @@ def get_realtime_weather(lat, lon):
             "dir": data["wind_direction_10m"], 
             "stability": stability
         }
-    except: return {"success": False}
+    except Exception as e: 
+        return {"success": False, "error": str(e)}
 
 def calculate_zone(sub_name, q0, spill_type, storage_type, v_wind, stability, t_air, terrain, time_hrs):
     sub = SUBSTANCES[sub_name]
@@ -246,6 +246,12 @@ if 'lat' not in st.session_state: st.session_state.lat, st.session_state.lon = 4
 if 'weather' not in st.session_state: st.session_state.weather = None
 if 'zoom' not in st.session_state: st.session_state.zoom = 11
 
+# ДОДАЄМО СЕСІЙНІ КЛЮЧІ ДЛЯ ПРИМУСОВОГО КЕРУВАННЯ ПОВЗУНКАМИ
+if 't_air_val' not in st.session_state: st.session_state.t_air_val = 20.0
+if 'v_wind_val' not in st.session_state: st.session_state.v_wind_val = 3.0
+if 'w_dir_val' not in st.session_state: st.session_state.w_dir_val = 0
+if 'stab_val' not in st.session_state: st.session_state.stab_val = "Ізотермія"
+
 with st.sidebar:
     st.title("НХР V.5.0 (Тактичний)")
     show_analytics = st.toggle("📊 Панель аналітики", value=True)
@@ -274,20 +280,22 @@ with st.sidebar:
 
     with tabs[1]:
         if st.button("🔄 Отримати метеодані (API)", type="primary", use_container_width=True):
-            res = get_realtime_weather(st.session_state.lat, st.session_state.lon)
-            if res["success"]: st.session_state.weather = res
+            with st.spinner("З'єднання з метеосупутником..."):
+                res = get_realtime_weather(st.session_state.lat, st.session_state.lon)
+                if res["success"]: 
+                    st.session_state.weather = res
+                    # ПРИМУСОВО ПЕРЕЗАПИСУЄМО ЗНАЧЕННЯ ВІДЖЕТІВ
+                    st.session_state.t_air_val = float(res['temp'])
+                    st.session_state.v_wind_val = float(res['wind'])
+                    st.session_state.w_dir_val = int(res['dir'])
+                    st.session_state.stab_val = res['stability']
+                else:
+                    st.error(f"Помилка API: {res.get('error', 'Невідома помилка')}")
         
-        if st.session_state.weather:
-            w = st.session_state.weather
-            t_air = st.slider("Температура (°C)", -40.0, 40.0, float(w['temp']))
-            v_wind = st.slider("Вітер (м/с)", 0.1, 15.0, float(w['wind']))
-            w_dir = st.slider("Напрямок (°)", 0, 360, int(w['dir']))
-            stab = st.selectbox("СВША", list(ATMOSPHERE_STABILITY.keys()), index=list(ATMOSPHERE_STABILITY.keys()).index(w['stability']))
-        else:
-            t_air = st.slider("Температура (°C)", -40.0, 40.0, 20.0)
-            v_wind = st.slider("Вітер (м/с)", 0.1, 15.0, 3.0)
-            w_dir = st.slider("Напрямок (°)", 0, 360, 0)
-            stab = st.selectbox("СВША", list(ATMOSPHERE_STABILITY.keys()))
+        t_air = st.slider("Температура (°C)", -40.0, 40.0, key="t_air_val")
+        v_wind = st.slider("Вітер (м/с)", 0.1, 15.0, key="v_wind_val")
+        w_dir = st.slider("Напрямок (°)", 0, 360, key="w_dir_val")
+        stab = st.selectbox("СВША", list(ATMOSPHERE_STABILITY.keys()), key="stab_val")
 
 # --- РОЗРАХУНОК ---
 res = calculate_zone(sub_name, qty, spill, storage, v_wind, stab, t_air, terrain, time_hrs)
