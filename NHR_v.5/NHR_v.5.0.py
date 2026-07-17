@@ -56,15 +56,8 @@ def get_realtime_weather(lat, lon):
         elif is_day == 1: stability = "Конвекція" if (wind_ms < 3 or clouds < 50) else "Ізотермія"
         else: stability = "Інверсія" if (wind_ms < 3 or clouds < 50) else "Ізотермія"
             
-        return {
-            "success": True, 
-            "wind": wind_ms, 
-            "temp": data["temperature_2m"],
-            "dir": data["wind_direction_10m"], 
-            "stability": stability
-        }
-    except: 
-        return {"success": False}
+        return {"success": True, "wind": wind_ms, "temp": data["temperature_2m"], "dir": data["wind_direction_10m"], "stability": stability}
+    except: return {"success": False}
 
 def calculate_zone(sub_name, q0, spill_type, storage_type, v_wind, stability, t_air, terrain, time_hrs):
     sub = SUBSTANCES[sub_name]
