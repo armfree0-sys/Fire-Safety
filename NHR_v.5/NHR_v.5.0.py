@@ -191,7 +191,7 @@ def create_primary_geojson(lat, lon, max_radius_km, wind_azimuth, v_wind):
         "type": "FeatureCollection",
         "features": [{
             "type": "Feature",
-            "properties": {"label": "Первинна хмара (Ударна хвиля)"},
+            "properties": {"label": "Первинна хмара (Миттєвий викид)"},
             "geometry": {"type": "Polygon", "coordinates": [points]}
         }]
     }
@@ -382,10 +382,10 @@ with col_map:
 
 if col_info:
     with col_info:
-        st.markdown("### 📊 Тактичне зведення")
+        st.markdown("### 📊 Розрахункові параметри")
         
         st.markdown("<div class='metric-primary'>", unsafe_allow_html=True)
-        st.caption("💥 ПЕРВИННА ХМАРА (Ударна хвиля)")
+        st.caption("💥 ПЕРВИННА ХМАРА (Миттєвий викид)")
         c1, c2 = st.columns(2)
         c1.metric("Фактична маса", f"{res['q1']:.2f} т")
         c2.metric("Глибина (Г1)", f"{res['g1']:.2f} км")
