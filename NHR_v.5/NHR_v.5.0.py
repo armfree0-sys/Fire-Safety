@@ -44,7 +44,7 @@ def interpolate_value(val, data_dict):
 
 # Перенесено логіку запиту з версії 4.2
 def get_realtime_weather(lat, lon):
-    url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current=temperature_2m,wind_speed_10m,cloud_cover,is_day,wind_direction_10m"
+    url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current=temperature_10m,wind_speed_10m,cloud_cover,is_day,wind_direction_10m"
     try:
         response = requests.get(url, timeout=5)
         data = response.json()["current"]
