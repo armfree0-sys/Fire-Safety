@@ -4,6 +4,8 @@ import folium
 from streamlit_folium import st_folium
 import requests
 
+# --- V.5.2.2 Боремося з опенметео ---
+
 # --- 1. БАЗА ДАНИХ ТА КОНСТАНТИ ---
 
 # Розширена база речовин (Додаток 2)
