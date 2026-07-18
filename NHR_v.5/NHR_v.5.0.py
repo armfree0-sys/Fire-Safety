@@ -4,6 +4,8 @@ import folium
 from streamlit_folium import st_folium
 import requests
 
+# --- ВЕРСІЯ 5.2.2 ---
+
 # --- 1. БАЗА ДАНИХ ТА КОНСТАНТИ ---
 
 # Розширена база речовин (Додаток 2)
