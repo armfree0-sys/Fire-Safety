@@ -232,6 +232,7 @@ st.markdown("""
     .metric-secondary { border-left: 4px solid #FF8C00; }
     .metric-total { border-left: 4px solid #00C853; background-color: #122116 !important; }
     .settlement-card { background-color: #262730; padding: 10px; border-radius: 5px; margin-bottom: 5px; border-left: 3px solid #f63366; }
+    [data-testid="stHeader"] {display: none;}
     </style>
 """, unsafe_allow_html=True)
 
@@ -317,7 +318,7 @@ with col_map:
         top: 15px;
         right: 15px;
         z-index: 9999;
-        background-color: rgba(255, 255, 255, 0.65); /* Напівпрозорий фон */
+        background-color: rgba(255, 255, 255, 0.50); /* Напівпрозорий фон */
         backdrop-filter: blur(6px); /* Ефект матового скла (розмиття фону карти) */
         -webkit-backdrop-filter: blur(6px);
         padding: 10px;
@@ -337,7 +338,7 @@ with col_map:
         <div style="font-size: 13px; margin-bottom: 8px;">
             💨 <b>{v_wind:.1f}</b> м/с
         </div>
-        <div style="text-align: center; background: #f8f9fa; border-radius: 4px; padding: 4px; border: 1px solid #eee;">
+        <div style="text-align: center; background-color: rgba(255, 255, 255, 0.50); /* Напівпрозорий фон */; border-radius: 4px; padding: 4px; border: 1px solid #eee;">
             <div style="font-size: 10px; color: #666; margin-bottom: 2px;">Напрямок вітру ({w_dir}°)</div>
             <div style="transform: rotate({w_dir}deg); font-size: 22px; color: #ff4b4b; line-height: 1; text-shadow: 1px 1px 2px rgba(0,0,0,0.2);">
                 ⬇
