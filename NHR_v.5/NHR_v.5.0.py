@@ -340,7 +340,7 @@ with col_map:
         <div style="font-size: 13px; margin-bottom: 8px;">
             💨 <b>{v_wind:.1f}</b> м/с
         </div>
-        <div style="text-align: center; background-color: rgba(255, 255, 255, 0.50); /* Напівпрозорий фон */; border-radius: 4px; padding: 4px; border: 1px solid #eee;">
+        <div style="text-align: center; background-color: rgba(255, 255, 255, 0.20); border-radius: 4px; padding: 4px; border: 1px solid #eee;">
             <div style="font-size: 10px; color: #666; margin-bottom: 2px;">Напрямок вітру ({w_dir}°)</div>
             <div style="transform: rotate({w_dir}deg); font-size: 22px; color: #ff4b4b; line-height: 1; text-shadow: 1px 1px 2px rgba(0,0,0,0.2);">
                 ⬇
