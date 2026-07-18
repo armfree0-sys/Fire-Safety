@@ -317,12 +317,15 @@ with col_map:
         top: 15px;
         right: 15px;
         z-index: 9999;
-        background-color: rgba(255, 255, 255, 0.95);
+        background-color: rgba(255, 255, 255, 0.65); /* Напівпрозорий фон */
+        backdrop-filter: blur(6px); /* Ефект матового скла (розмиття фону карти) */
+        -webkit-backdrop-filter: blur(6px);
         padding: 10px;
         border-radius: 8px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        border: 1px solid rgba(255, 255, 255, 0.5); /* Легка світла рамка */
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         font-family: Arial, sans-serif;
-        color: #333;
+        color: #222;
         min-width: 110px;
     ">
         <div style="font-weight: bold; margin-bottom: 5px; border-bottom: 1px solid #ccc; padding-bottom: 3px; font-size: 14px;">
