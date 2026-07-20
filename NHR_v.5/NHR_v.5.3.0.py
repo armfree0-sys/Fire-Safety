@@ -284,7 +284,7 @@ with col_map:
             <div style="font-size: 14px; margin-top: 2px;">Маса: <b>{res['q1']:.2f} т</b> <br> Глибина: <b>{res['g1']:.2f} км</b></div>
         </div>
         <div style="margin-bottom: 12px;">
-            <div style="font-size: 11px; color: #aaa; text-transform: uppercase;">♨️ Вторинна хмара (Випаровування)</div>
+            <div style="font-size: 11px; color: #aaa; text-transform: uppercase;">♨️ Вторинна хмара <br> (Випаровування)</div>
             <div style="font-size: 14px; margin-top: 2px;">Час випаров.: <b>{res['t_evap']:.1f} год</b> <br> Глибина: <b>{res['g2']:.2f} км</b></div>
         </div>
         <div style="background-color: rgba(0, 200, 83, 0.2); padding: 8px; border-radius: 6px; border-left: 4px solid #00C853;">
