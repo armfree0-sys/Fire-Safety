@@ -275,7 +275,7 @@ with col_map:
 
     # 2. ВІДЖЕТ ПРОГНОЗУ ВИКИДУ (Правий кут)
     analytics_widget_html = f"""
-    <div style="position: absolute; top: 180px; right: 15px; z-index: 9999; background-color: rgba(30, 30, 30, 0.65); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); padding: 15px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 4px 10px rgba(0,0,0,0.5); font-family: Arial, sans-serif; color: #fff; min-width: 180px;">
+    <div style="position: absolute; top: 180px; right: 15px; z-index: 9999; background-color: rgba(30, 30, 30, 0.65); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); padding: 15px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 4px 10px rgba(0,0,0,0.5); font-family: Arial, sans-serif; color: #fff; min-width: 150px;">
         <div style="font-weight: bold; color: #ff4b4b; margin-bottom: 10px; border-bottom: 1px solid #555; padding-bottom: 5px; font-size: 15px;">
             🚨 Параметри викиду
         </div>
@@ -285,10 +285,10 @@ with col_map:
         </div>
         <div style="margin-bottom: 12px;">
             <div style="font-size: 11px; color: #aaa; text-transform: uppercase;">♨️ Вторинна хмара (Випаровування)</div>
-            <div style="font-size: 14px; margin-top: 2px;">Час випаров.: <b>{res['t_evap']:.1f} год</b> <span style="color:#555">|</span> Глибина: <b>{res['g2']:.2f} км</b></div>
+            <div style="font-size: 14px; margin-top: 2px;">Час випаров.: <b>{res['t_evap']:.1f} год</b> <br> Глибина: <b>{res['g2']:.2f} км</b></div>
         </div>
         <div style="background-color: rgba(0, 200, 83, 0.2); padding: 8px; border-radius: 6px; border-left: 4px solid #00C853;">
-            <div style="font-size: 11px; color: #ccc;">ЗАГАЛЬНА ГЛИБИНА УРАЖЕННЯ</div>
+            <div style="font-size: 11px; color: #ccc;">ГЛИБИНА УРАЖЕННЯ</div>
             <div style="font-size: 18px; font-weight: bold; margin-top: 2px;">{res['g_full']:.2f} км</div>
         </div>
     </div>
