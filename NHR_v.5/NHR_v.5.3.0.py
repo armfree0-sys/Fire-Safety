@@ -4,7 +4,7 @@ import folium
 from streamlit_folium import st_folium
 import requests
 
-# --- ВЕРСІЯ 5.3 (Tactical UI) ---
+# --- ВЕРСІЯ 5.4.0 (Tactical UI) ---
 
 # --- 1. БАЗА ДАНИХ ТА КОНСТАНТИ ---
 SUBSTANCES = {
@@ -166,7 +166,7 @@ def find_settlements(lat, lon, radius_km, wind_dir, v_wind):
     except: return []
 
 # --- 4. ІНТЕРФЕЙС (UI) ---
-st.set_page_config(page_title="НХР V.5.3 Tactical", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="НХР V.5.4.0 Tactical", layout="wide", initial_sidebar_state="collapsed")
 
 st.markdown("""
     <style>
