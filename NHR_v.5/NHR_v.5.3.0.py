@@ -191,15 +191,15 @@ if 'w_dir_val' not in st.session_state: st.session_state.w_dir_val = 0
 if 'stab_val' not in st.session_state: st.session_state.stab_val = "Ізотермія"
 
 # --- ОСНОВНА СТРУКТУРА: 2 КОЛОНКИ ЗАМІСТЬ SIDEBAR ---
-col_inputs, col_map = st.columns([2.5, 7.5])
+col_inputs, col_map = st.columns([2.0, 8.0])
 
 with col_inputs:
     st.markdown("### ⚙️ Параметри моделювання")
     
     # 1. КООРДИНАТИ (НОВИЙ БЛОК)
     st.markdown("📍 **Точка аварії (Координати)**")
-    in_lat = st.number_input("Широта", value=st.session_state.lat, format="%.5f", step=0.01)
-    in_lon = st.number_input("Довгота", value=st.session_state.lon, format="%.5f", step=0.01)
+    in_lat = st.number_input("Широта", value=st.session_state.lat, format="%.5f", step=0.0001)
+    in_lon = st.number_input("Довгота", value=st.session_state.lon, format="%.5f", step=0.0001)
     
     # Синхронізація ручного вводу
     if in_lat != st.session_state.lat or in_lon != st.session_state.lon:
