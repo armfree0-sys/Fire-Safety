@@ -273,9 +273,9 @@ with col_map:
     """
     m.get_root().html.add_child(folium.Element(weather_widget_html))
 
-    # 2. НОВИЙ ВІДЖЕТ АНАЛІТИКИ (Нижній лівий кут)
+    # 2. НОВИЙ ВІДЖЕТ АНАЛІТИКИ (Правий кут)
     analytics_widget_html = f"""
-    <div style="position: absolute; bottom: 30px; right: 15px; z-index: 9999; background-color: rgba(30, 30, 30, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); padding: 15px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 4px 10px rgba(0,0,0,0.5); font-family: Arial, sans-serif; color: #fff; min-width: 260px;">
+    <div style="position: absolute; top: 60px; right: 15px; z-index: 9999; background-color: rgba(30, 30, 30, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); padding: 15px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 4px 10px rgba(0,0,0,0.5); font-family: Arial, sans-serif; color: #fff; min-width: 260px;">
         <div style="font-weight: bold; color: #ff4b4b; margin-bottom: 10px; border-bottom: 1px solid #555; padding-bottom: 5px; font-size: 15px;">
             🚨 Параметри викиду
         </div>
