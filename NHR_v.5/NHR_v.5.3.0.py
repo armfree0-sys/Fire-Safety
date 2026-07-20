@@ -198,9 +198,8 @@ with col_inputs:
     
     # 1. КООРДИНАТИ (НОВИЙ БЛОК)
     st.markdown("📍 **Точка аварії (Координати)**")
-    c_lat, c_lon = st.columns(2)
-    in_lat = c_lat.number_input("Широта", value=st.session_state.lat, format="%.5f", step=0.01)
-    in_lon = c_lon.number_input("Довгота", value=st.session_state.lon, format="%.5f", step=0.01)
+    in_lat = st.number_input("Широта", value=st.session_state.lat, format="%.5f", step=0.01)
+    in_lon = st.number_input("Довгота", value=st.session_state.lon, format="%.5f", step=0.01)
     
     # Синхронізація ручного вводу
     if in_lat != st.session_state.lat or in_lon != st.session_state.lon:
