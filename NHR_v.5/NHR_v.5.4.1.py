@@ -216,7 +216,7 @@ with col_inputs:
         st.session_state.lon = in_lon
         st.rerun()
 
-    tabs = st.tabs(["🧪 Об'єкт", "🌤 Погода", "🗺️ Шари"])
+    tabs = st.tabs(["🧪 Об'єкт", "🌤 Погода", "🗺️ Карта"])
     
     with tabs[0]:
         sub_name = st.selectbox("Речовина", list(SUBSTANCES.keys()))
