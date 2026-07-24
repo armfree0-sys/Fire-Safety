@@ -4,7 +4,7 @@ import folium
 from streamlit_folium import st_folium
 import requests
 
-# --- ВЕРСІЯ 5.4.2 (Tactical UI + Map Switcher) ---
+# --- ВЕРСІЯ 5.5.0 (Tactical UI + Map Switcher + Advanced Overpass API) ---
 
 # --- 1. БАЗА ДАНИХ ТА КОНСТАНТИ ---
 SUBSTANCES = {
@@ -45,7 +45,7 @@ def interpolate_value(val, data_dict):
 def get_realtime_weather(lat, lon):
     url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current=temperature_2m,wind_speed_10m,cloud_cover,is_day,wind_direction_10m"
     # Додаємо "паспорт" нашого додатка, щоб сервер не блокував нас як бота
-    headers = {"User-Agent": "NHR_Tactical_Simulator/5.4.2"}
+    headers = {"User-Agent": "NHR_Tactical_Simulator/5.5.0"}
     try:
         response = requests.get(url, headers=headers, timeout=5)
         response.raise_for_status() # Перевіряємо, чи немає помилок HTTP
@@ -158,10 +158,20 @@ def create_primary_geojson(lat, lon, max_radius_km, wind_azimuth, v_wind):
 
 def find_settlements(lat, lon, radius_km, wind_dir, v_wind):
     overpass_url = "http://overpass-api.de/api/interpreter"
-    query = f"""[out:json];node["place"~"city|town|village|hamlet"](around:{radius_km*1000},{lat},{lon});out;"""
+    # ОНОВЛЕНИЙ ЗАПИТ: Шукаємо точки (node), лінії (way) та полігони (rel)
+    # Функція 'out center' гарантує, що ми завжди отримаємо точку (центр) для обчислень
+    query = f"""
+    [out:json];
+    (
+      node["place"~"city|town|village|hamlet"](around:{radius_km*1000},{lat},{lon});
+      way["place"~"city|town|village|hamlet"](around:{radius_km*1000},{lat},{lon});
+      rel["place"~"city|town|village|hamlet"](around:{radius_km*1000},{lat},{lon});
+    );
+    out center;
+    """
     try:
         response = requests.get(overpass_url, params={'data': query}, timeout=10)
-        places = response.json().get('elements', [])
+        elements = response.json().get('elements', [])
         affected = []
         cloud_dir = (wind_dir + 180) % 360
         half_a = get_sector_angle(v_wind) / 2
@@ -169,9 +179,20 @@ def find_settlements(lat, lon, radius_km, wind_dir, v_wind):
         # Коригування на кривизну Землі (косинус широти)
         cos_lat = math.cos(math.radians(lat))
         
-        for p in places:
-            p_lat, p_lon = p.get('lat'), p.get('lon')
+        # Використовуємо множину (set), щоб уникнути дублікатів міст
+        seen_places = set()
+
+        for el in elements:
+            # Якщо це way або rel, координати будуть у блоці 'center'
+            if el['type'] == 'node':
+                p_lat, p_lon = el.get('lat'), el.get('lon')
+            else:
+                p_lat, p_lon = el.get('center', {}).get('lat'), el.get('center', {}).get('lon')
+                
             if p_lat is None or p_lon is None: continue
+            
+            place_name = el.get('tags', {}).get('name', 'н.п.')
+            if place_name in seen_places: continue
             
             # Точний метричний розрахунок відстані (в кілометрах)
             dx = (p_lon - lon) * 111.32 * cos_lat
@@ -186,12 +207,14 @@ def find_settlements(lat, lon, radius_km, wind_dir, v_wind):
             
             if angle_diff <= half_a or half_a == 180:
                 time = (dist * 1000) / (max(v_wind, 0.1) * 60)
-                affected.append({"name": p.get('tags', {}).get('name', 'н.п.'), "dist": round(dist, 1), "time": int(time)})
+                affected.append({"name": place_name, "dist": round(dist, 1), "time": int(time)})
+                seen_places.add(place_name)
+                
         return sorted(affected, key=lambda x: x["dist"])
     except: return []
 
 # --- 4. ІНТЕРФЕЙС (UI) ---
-st.set_page_config(page_title="НХР V.5.4.2 Tactical", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="НХР V.5.5.0 Tactical", layout="wide", initial_sidebar_state="collapsed")
 
 st.markdown("""
     <style>
