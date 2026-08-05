@@ -9,7 +9,7 @@ from shapely.geometry import Polygon, Point, mapping
 from shapely.ops import transform
 import pyproj
 
-# --- ВЕРСІЯ 6.0.0 (Tactical UI + Map Switcher + Shapely Spatial Analysis) ---
+# --- ВЕРСІЯ 6.1.0 (Tactical UI + Map Switcher + Shapely Spatial Analysis + UI/UX) ---
 
 # --- 1. БАЗА ДАНИХ ТА КОНСТАНТИ ---
 SUBSTANCES = {
@@ -53,7 +53,7 @@ def interpolate_value(val, data_dict):
 
 def get_realtime_weather(lat, lon):
     url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current=temperature_2m,wind_speed_10m,cloud_cover,is_day,wind_direction_10m"
-    headers = {"User-Agent": "NHR_Tactical_Simulator/6.0.0"}
+    headers = {"User-Agent": "NHR_Tactical_Simulator/6.1.0"}
     try:
         response = requests.get(url, headers=headers, timeout=5)
         response.raise_for_status()
@@ -129,7 +129,6 @@ def get_cloud_polygon(lat, lon, max_radius_km, wind_azimuth, v_wind):
     return Polygon(points)
 
 def create_isochrone_geojsons(lat, lon, max_radius_km, wind_azimuth, v_wind):
-    # Візуальний генератор залишено без змін для збереження стилів карти
     features = []
     cloud_dir = (wind_azimuth + 180) % 360
     angle = get_sector_angle(v_wind)
@@ -168,37 +167,40 @@ def create_isochrone_geojsons(lat, lon, max_radius_km, wind_azimuth, v_wind):
 
 def create_primary_geojson(lat, lon, max_radius_km, wind_azimuth, v_wind):
     cloud_poly = get_cloud_polygon(lat, lon, max_radius_km, wind_azimuth, v_wind)
-    # Конвертуємо Shapely Polygon назад у GeoJSON формат для Folium
     return {
         "type": "FeatureCollection",
         "features": [{"type": "Feature", "properties": {"label": "Первинна хмара (Миттєвий викид)"}, "geometry": mapping(cloud_poly)}]
     }
 
-def find_settlements_advanced(lat, lon, radius_km, wind_dir, v_wind):
-    """Шукає населені пункти, виконує перетин полігонів та рахує населення (Shapely + PyProj)"""
-    cloud_poly = get_cloud_polygon(lat, lon, radius_km, wind_dir, v_wind)
+def find_settlements_advanced(lat, lon, g1, g_full, wind_dir, v_wind):
+    """Оновлений пошук із двома окремими полігонами та виправленим API запитом"""
+    # Створюємо 2 окремі математичні полігони
+    poly_1 = get_cloud_polygon(lat, lon, g1, wind_dir, v_wind)
+    poly_full = get_cloud_polygon(lat, lon, g_full, wind_dir, v_wind)
+    
+    max_radius_km = max(g1, g_full)
+    search_radius_m = max(int(max_radius_km * 1000), 1) # Захист від нуля та дробових чисел
     
     overpass_url = "http://overpass-api.de/api/interpreter"
-   # Додаємо внутрішній ліміт часу для сервера [timeout:25] та ціле число для радіуса
     query = f"""
     [out:json][timeout:25];
     (
-      node["place"~"city|town|village|hamlet"](around:{int(radius_km*1000)},{lat},{lon});
-      way["place"~"city|town|village|hamlet"](around:{int(radius_km*1000)},{lat},{lon});
+      node["place"~"city|town|village|hamlet"](around:{search_radius_m},{lat},{lon});
+      way["place"~"city|town|village|hamlet"](around:{search_radius_m},{lat},{lon});
     );
     out geom;
     """
-    # Додаємо паспорт і збільшуємо час очікування
-    headers = {"User-Agent": "NHR_Tactical_Simulator/6.0.0"}
+    
+    headers = {"User-Agent": "NHR_Tactical_Simulator/6.1.0"}
+    
     try:
         response = requests.get(overpass_url, params={'data': query}, headers=headers, timeout=30)
-        response.raise_for_status() # Це змусить Python відловлювати HTTP помилки одразу
+        response.raise_for_status()
         elements = response.json().get('elements', [])
         
         affected = []
         seen_places = set()
-        
-        cos_lat_sq = math.cos(math.radians(lat)) ** 2 # Коефіцієнт для корекції площі у проекції EPSG:3857
+        cos_lat_sq = math.cos(math.radians(lat)) ** 2
 
         for el in elements:
             tags = el.get('tags', {})
@@ -208,10 +210,8 @@ def find_settlements_advanced(lat, lon, radius_km, wind_dir, v_wind):
             place_type = tags.get('place', 'village')
             pop = int(tags.get('population', 0))
             
-            # Будуємо полігон населеного пункту
             geom = None
             if el['type'] == 'node':
-                # Якщо це лише точка, створюємо синтетичний полігон (буфер) на основі типу міста
                 pt = Point(el['lon'], el['lat'])
                 radii_m = {'city': 4000, 'town': 2000, 'village': 1000, 'hamlet': 500}
                 r = radii_m.get(place_type, 1000)
@@ -223,30 +223,37 @@ def find_settlements_advanced(lat, lon, radius_km, wind_dir, v_wind):
                     geom = Polygon(coords)
             
             if geom and geom.is_valid:
-                # ОПЕРАЦІЯ 1: ПЕРЕХРЕЩЕННЯ (INTERSECTION)
-                intersection = cloud_poly.intersection(geom)
+                # ПЕРЕХРЕЩЕННЯ ІЗ ЗАГАЛЬНОЮ ЗОНОЮ
+                int_full = poly_full.intersection(geom)
                 
-                if not intersection.is_empty:
-                    # Конвертуємо в метричну систему для розрахунку площі
-                    int_m = transform(proj_to_m, intersection)
+                if not int_full.is_empty:
+                    int_m_full = transform(proj_to_m, int_full)
                     geom_m = transform(proj_to_m, geom)
                     
-                    # Рахуємо площу і коригуємо на спотворення проекції (через косинус широти)
-                    area_affected_km2 = (int_m.area * cos_lat_sq) / 1_000_000
+                    area_full_km2 = (int_m_full.area * cos_lat_sq) / 1_000_000
                     area_total_km2 = (geom_m.area * cos_lat_sq) / 1_000_000
                     
                     if area_total_km2 > 0:
-                        # ОПЕРАЦІЯ 2: РОЗРАХУНОК НАСЕЛЕННЯ ЧЕРЕЗ ЩІЛЬНІСТЬ
                         if pop == 0:
-                            density = 500 # Якщо населення не вказано в OSM, беремо середнє 500 осіб/км²
+                            density = 500
                             pop_total = int(area_total_km2 * density)
                         else:
                             pop_total = pop
                             density = pop_total / area_total_km2
                             
-                        pop_affected = int(area_affected_km2 * density)
+                        pop_full_affected = int(area_full_km2 * density)
                         
-                        # Відстань до центру для сортування
+                        # ПЕРЕХРЕЩЕННЯ ІЗ ПЕРВИННОЮ ХМАРОЮ
+                        int_1 = poly_1.intersection(geom)
+                        area_1_km2 = 0
+                        pop_1_affected = 0
+                        
+                        if not int_1.is_empty:
+                            int_m_1 = transform(proj_to_m, int_1)
+                            area_1_km2 = (int_m_1.area * cos_lat_sq) / 1_000_000
+                            pop_1_affected = int(area_1_km2 * density)
+                        
+                        # Розрахунок відстані
                         ctr = geom.centroid
                         dx = (ctr.x - lon) * 111.32 * math.cos(math.radians(lat))
                         dy = (ctr.y - lat) * 110.57
@@ -257,25 +264,28 @@ def find_settlements_advanced(lat, lon, radius_km, wind_dir, v_wind):
                             "name": name,
                             "dist": round(dist, 1),
                             "time": int(time),
-                            "area_affected": round(area_affected_km2, 2),
-                            "pop_affected": pop_affected,
-                            "geometry": intersection # Зберігаємо для відмальовки!
+                            "area_full": round(area_full_km2, 2),
+                            "pop_full": pop_full_affected,
+                            "area_1": round(area_1_km2, 2),
+                            "pop_1": pop_1_affected,
+                            "geom_full": int_full,
                         })
                         seen_places.add(name)
                         
         return sorted(affected, key=lambda x: x["dist"])
     except Exception as e:
-        st.error(f"Overpass API Error: {e}") # Виведе помилку прямо на екран!
+        st.error(f"Помилка зв'язку з картографічним сервером: {e}")
         return []
 
 # --- 4. ІНТЕРФЕЙС (UI) ---
-st.set_page_config(page_title="НХР V.6.0.0 Tactical GIS", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="НХР V.6.1.0 Tactical GIS", layout="wide", initial_sidebar_state="collapsed")
 
 st.markdown("""
     <style>
     .main { background-color: #0E1117; }
     .block-container { padding-top: 1rem; max-width: 100%; padding-left: 1rem; padding-right: 1rem;}
-    .settlement-card { background-color: #262730; padding: 10px; border-radius: 5px; margin-bottom: 5px; border-left: 3px solid #f63366; font-size: 13px;}
+    .settlement-card { background-color: #262730; padding: 10px; border-radius: 5px; margin-bottom: 5px; border-left: 3px solid #FF8C00; font-size: 13px;}
+    .summary-card { background-color: #1a1a24; padding: 15px; border-radius: 8px; border-left: 4px solid #FF4B4B; font-size: 16px; margin-bottom: 10px; }
     [data-testid="stHeader"] {display: none;}
     [data-testid="collapsedControl"] {display: none;}
     </style>
@@ -286,7 +296,7 @@ if 'lat' not in st.session_state: st.session_state.lat = 49.4444
 if 'lon' not in st.session_state: st.session_state.lon = 32.0597
 if 'zoom' not in st.session_state: st.session_state.zoom = 11
 if 'weather' not in st.session_state: st.session_state.weather = None
-if 'affected_places' not in st.session_state: st.session_state.affected_places = []
+if 'affected_places' not in st.session_state: st.session_state.affected_places = None
 
 if 't_air_val' not in st.session_state: st.session_state.t_air_val = 20.0
 if 'v_wind_val' not in st.session_state: st.session_state.v_wind_val = 3.0
@@ -299,16 +309,14 @@ col_inputs, col_map = st.columns([2.0, 8.0])
 with col_inputs:
     st.markdown("### ⚙️ Параметри прогнозування")
     
-    # 1. КООРДИНАТИ (НОВИЙ БЛОК)
     st.markdown("📍 **Точка аварії (Координати)**")
     in_lat = st.number_input("Широта", value=st.session_state.lat, format="%.5f", step=0.0001)
     in_lon = st.number_input("Довгота", value=st.session_state.lon, format="%.5f", step=0.0001)
     
-    # Синхронізація ручного вводу
     if in_lat != st.session_state.lat or in_lon != st.session_state.lon:
         st.session_state.lat = in_lat
         st.session_state.lon = in_lon
-        st.session_state.affected_places = [] # Очищаємо список при зміні координат
+        st.session_state.affected_places = None
         st.rerun()
 
     tabs = st.tabs(["🧪 Об'єкт", "🌤 Погода", "🗺️ Шари"])
@@ -327,6 +335,7 @@ with col_inputs:
         st.markdown("---")
         show_total = st.checkbox("Загальна зона (Ізохрони)", value=True)
         show_primary = st.checkbox("Первинна хмара (Контур)", value=True)
+        show_affected_poly = st.checkbox("Уражені НП (Пульсуючий шар)", value=True)
 
     with tabs[1]:
         if st.button("🔄 Отримати метеодані (API)", type="primary", use_container_width=True):
@@ -345,32 +354,60 @@ with col_inputs:
         w_dir = st.slider("Напрямок (°)", 0, 360, key="w_dir_val")
         stab = st.selectbox("СВША", list(ATMOSPHERE_STABILITY.keys()), key="stab_val")
 
-    # РОЗРАХУНОК
     res = calculate_zone(sub_name, qty, spill, storage, v_wind, stab, t_air, terrain, time_hrs)
-    active_g = 0.0
-    if show_total: active_g = max(active_g, res['g_full'])
-    if show_primary: active_g = max(active_g, res['g1'])
 
     st.markdown("---")
     if st.button("🔍 Аналіз ГІС (Пошук населення)", use_container_width=True):
         with st.spinner("Обчислення перехрещень полігонів Shapely..."):
-            st.session_state.affected_places = find_settlements_advanced(st.session_state.lat, st.session_state.lon, active_g, w_dir, v_wind)
+            st.session_state.affected_places = find_settlements_advanced(st.session_state.lat, st.session_state.lon, res['g1'], res['g_full'], w_dir, v_wind)
     
-    # Вивід результатів під кнопкою
-    if st.session_state.affected_places:
-        for p in st.session_state.affected_places:
-            st.markdown(f"<div class='settlement-card'><b>{p['name']}</b><br>Відстань: {p['dist']} км | Прибуття: ~{p['time']} хв<br><span style='color:#FF4B4B;'>Уражена площа: <b>{p['area_affected']} км²</b></span><br><span style='color:#FF8C00;'>Людей у зоні: <b>~{p['pop_affected']} осіб</b></span></div>", unsafe_allow_html=True)
-    elif st.session_state.affected_places == []:
-        pass # Ще не шукали або дійсно пусто
+    # Вивід ЗВЕДЕНИХ результатів під кнопкою
+    if st.session_state.affected_places is not None:
+        if len(st.session_state.affected_places) > 0:
+            total_pop_full = sum(p['pop_full'] for p in st.session_state.affected_places)
+            total_pop_primary = sum(p['pop_1'] for p in st.session_state.affected_places)
+            total_cities = len(st.session_state.affected_places)
+            
+            st.markdown(f"""
+            <div class='summary-card'>
+                <b>Всього у зоні ризику: ~{total_pop_full} осіб</b><br>
+                <span style='font-size: 13px; color: #FF4B4B;'>З них під первинною хмарою: ~{total_pop_primary} осіб</span>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            with st.expander(f"🏘️ Уражені населені пункти ({total_cities})", expanded=True):
+                for p in st.session_state.affected_places:
+                    st.markdown(f"""
+                    <div class='settlement-card'>
+                        <b>{p['name']}</b><br>
+                        Відстань: {p['dist']} км | Прибуття: ~{p['time']} хв<br>
+                        <span style='color:#FF8C00;'>Загальна зона: <b>{p['area_full']} км²</b> (~{p['pop_full']} осіб)</span><br>
+                        <span style='color:#FF4B4B;'>Первинна хмара: <b>{p['area_1']} км²</b> (~{p['pop_1']} осіб)</span>
+                    </div>
+                    """, unsafe_allow_html=True)
+        else:
+            st.success("✅ Населених пунктів у зоні ураження не виявлено")
 
 with col_map:
-    # Отримання параметрів обраної карти
     map_tiles = MAP_PROVIDERS[selected_map_name]["tiles"]
     map_attr = MAP_PROVIDERS[selected_map_name]["attr"]
 
-    # КАРТА ТА ПЛАВАЮЧІ ВІДЖЕТИ
     m = folium.Map(location=[st.session_state.lat, st.session_state.lon], zoom_start=st.session_state.zoom, 
                    tiles=map_tiles, attr=map_attr)
+                   
+    # CSS ДЛЯ ПУЛЬСУЮЧОГО ШАРУ
+    css_pulse = """
+    <style>
+    path.pulse-layer {
+        animation: pulse_anim 1s infinite alternate !important;
+    }
+    @keyframes pulse_anim {
+        0% { fill-opacity: 0.3; stroke-width: 1px; }
+        100% { fill-opacity: 0.8; stroke-width: 4px; }
+    }
+    </style>
+    """
+    m.get_root().html.add_child(folium.Element(css_pulse))
     
     weather_widget_html = f"""
     <div style="position: absolute; top: 15px; right: 15px; z-index: 9999; background-color: rgba(255, 255, 255, 0.50); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); padding: 10px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.5); box-shadow: 0 4px 6px rgba(0,0,0,0.1); font-family: Arial, sans-serif; color: #222; min-width: 110px;">
@@ -416,15 +453,16 @@ with col_map:
                        style_function=lambda f: {'fillColor': '#555555', 'color': '#000000', 'weight': 3, 'fillOpacity': 0.3, 'dashArray': '10, 10'},
                        tooltip=folium.GeoJsonTooltip(fields=['label'], aliases=['Шар:'])).add_to(m)
                        
-    # ВІДМАЛЬОВКА НОВОГО ШАРУ (ПЕРЕХРЕЩЕННЯ ПОЛІГОНІВ)
-    if st.session_state.affected_places:
+    # ВІДМАЛЬОВКА НОВОГО ПУЛЬСУЮЧОГО ШАРУ
+    if show_affected_poly and st.session_state.affected_places:
         for p in st.session_state.affected_places:
-            geo_json_intersection = mapping(p['geometry'])
-            folium.GeoJson(
-                geo_json_intersection,
-                style_function=lambda f: {'fillColor': '#8B0000', 'color': '#FF0000', 'weight': 2, 'fillOpacity': 0.7},
-                tooltip=f"Уражено: {p['name']} ({p['area_affected']} км², ~{p['pop_affected']} осіб)"
-            ).add_to(m)
+            if not p['geom_full'].is_empty:
+                geo_json_intersection = mapping(p['geom_full'])
+                folium.GeoJson(
+                    geo_json_intersection,
+                    style_function=lambda f: {'fillColor': '#FF0000', 'color': '#FF0000', 'weight': 2, 'className': 'pulse-layer'},
+                    tooltip=f"Уражено: {p['name']} (Загальна: ~{p['pop_full']} осіб)"
+                ).add_to(m)
         
     folium.Marker([st.session_state.lat, st.session_state.lon], icon=folium.Icon(color='red', icon='info-sign')).add_to(m)
     map_res = st_folium(m, use_container_width=True, height=800, key="v5_map")
@@ -435,6 +473,6 @@ with col_map:
             if nl != st.session_state.lat or nn != st.session_state.lon:
                 st.session_state.lat = nl
                 st.session_state.lon = nn
-                st.session_state.affected_places = [] # Очищаємо список при кліку
+                st.session_state.affected_places = None # Очищаємо список при кліку
                 st.rerun()
         if map_res.get("zoom"): st.session_state.zoom = map_res["zoom"]
