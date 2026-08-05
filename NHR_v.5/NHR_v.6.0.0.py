@@ -5,11 +5,11 @@ from streamlit_folium import st_folium
 import requests
 
 # Імпорти для вищої просторової математики (ГІС)
-from shapely.geometry import Polygon, Point, mapping
+from shapely.geometry import Polygon, Point, MultiPoint, mapping
 from shapely.ops import transform
 import pyproj
 
-# --- ВЕРСІЯ 6.1.0 (Tactical UI + Map Switcher + Shapely Spatial Analysis + UI/UX) ---
+# --- ВЕРСІЯ 6.2.0 (Hybrid Geometry + Interactive Status) ---
 
 # --- 1. БАЗА ДАНИХ ТА КОНСТАНТИ ---
 SUBSTANCES = {
@@ -53,7 +53,7 @@ def interpolate_value(val, data_dict):
 
 def get_realtime_weather(lat, lon):
     url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current=temperature_2m,wind_speed_10m,cloud_cover,is_day,wind_direction_10m"
-    headers = {"User-Agent": "NHR_Tactical_Simulator/6.1.0"}
+    headers = {"User-Agent": "NHR_Tactical_Simulator/6.2.0"}
     try:
         response = requests.get(url, headers=headers, timeout=5)
         response.raise_for_status()
@@ -172,36 +172,42 @@ def create_primary_geojson(lat, lon, max_radius_km, wind_azimuth, v_wind):
         "features": [{"type": "Feature", "properties": {"label": "Первинна хмара (Миттєвий викид)"}, "geometry": mapping(cloud_poly)}]
     }
 
-def find_settlements_advanced(lat, lon, g1, g_full, wind_dir, v_wind):
-    """Оновлений пошук із двома окремими полігонами та виправленим API запитом"""
-    # Створюємо 2 окремі математичні полігони
+def find_settlements_advanced(lat, lon, g1, g_full, wind_dir, v_wind, status_ui=None):
+    """Оновлений пошук: Гібридна геометрія (node, way, rel) + Інтерактивний лог"""
     poly_1 = get_cloud_polygon(lat, lon, g1, wind_dir, v_wind)
     poly_full = get_cloud_polygon(lat, lon, g_full, wind_dir, v_wind)
     
     max_radius_km = max(g1, g_full)
-    search_radius_m = max(int(max_radius_km * 1000), 1) # Захист від нуля та дробових чисел
+    search_radius_m = max(int(max_radius_km * 1000), 1) 
     
     overpass_url = "http://overpass-api.de/api/interpreter"
+    
+    # Включаємо relation (великі міста) та таймаут 30 сек
     query = f"""
-    [out:json][timeout:25];
+    [out:json][timeout:30];
     (
       node["place"~"city|town|village|hamlet"](around:{search_radius_m},{lat},{lon});
       way["place"~"city|town|village|hamlet"](around:{search_radius_m},{lat},{lon});
+      rel["place"~"city|town|village|hamlet"](around:{search_radius_m},{lat},{lon});
     );
     out geom;
     """
     
-    headers = {"User-Agent": "NHR_Tactical_Simulator/6.1.0"}
+    headers = {"User-Agent": "NHR_Tactical_Simulator/6.2.0"}
     
     try:
-        response = requests.get(overpass_url, params={'data': query}, headers=headers, timeout=30)
+        if status_ui: status_ui.write("⏳ Етап 1: Підключення до супутника OSM... (очікування до 30 сек)")
+        response = requests.get(overpass_url, params={'data': query}, headers=headers, timeout=35)
         response.raise_for_status()
         elements = response.json().get('elements', [])
+        
+        if status_ui: status_ui.write(f"📥 Етап 2: Завантажено {len(elements)} об'єктів. Відбувається побудова гібридної геометрії...")
         
         affected = []
         seen_places = set()
         cos_lat_sq = math.cos(math.radians(lat)) ** 2
 
+        if status_ui: status_ui.write("🧮 Етап 3: Виконання просторового аналізу (Shapely Intersection)...")
         for el in elements:
             tags = el.get('tags', {})
             name = tags.get('name', 'Невідомо')
@@ -211,19 +217,34 @@ def find_settlements_advanced(lat, lon, g1, g_full, wind_dir, v_wind):
             pop = int(tags.get('population', 0))
             
             geom = None
+            
+            # ТОЧКИ (Дрібні села) -> Робимо буфер-милицю
             if el['type'] == 'node':
                 pt = Point(el['lon'], el['lat'])
                 radii_m = {'city': 4000, 'town': 2000, 'village': 1000, 'hamlet': 500}
                 r = radii_m.get(place_type, 1000)
                 geom_m = transform(proj_to_m, pt).buffer(r)
                 geom = transform(proj_to_deg, geom_m)
+                
+            # ЛІНІЇ (Прості контури)
             elif el['type'] == 'way' and 'geometry' in el:
                 coords = [(pt['lon'], pt['lat']) for pt in el['geometry']]
                 if len(coords) >= 3:
                     geom = Polygon(coords)
+                    
+            # МУЛЬТИПОЛІГОНИ (Великі міста - НОВЕ!)
+            elif el['type'] == 'relation':
+                coords = []
+                for member in el.get('members', []):
+                    # Беремо тільки зовнішні контури для безпечного радіуса
+                    if member.get('role', 'outer') == 'outer' and 'geometry' in member:
+                        for pt in member['geometry']:
+                            coords.append(Point(pt['lon'], pt['lat']))
+                if len(coords) >= 3:
+                    # Натягуємо суцільний "купол" на всі знайдені точки міста (Convex Hull)
+                    geom = MultiPoint(coords).convex_hull
             
             if geom and geom.is_valid:
-                # ПЕРЕХРЕЩЕННЯ ІЗ ЗАГАЛЬНОЮ ЗОНОЮ
                 int_full = poly_full.intersection(geom)
                 
                 if not int_full.is_empty:
@@ -243,7 +264,6 @@ def find_settlements_advanced(lat, lon, g1, g_full, wind_dir, v_wind):
                             
                         pop_full_affected = int(area_full_km2 * density)
                         
-                        # ПЕРЕХРЕЩЕННЯ ІЗ ПЕРВИННОЮ ХМАРОЮ
                         int_1 = poly_1.intersection(geom)
                         area_1_km2 = 0
                         pop_1_affected = 0
@@ -253,7 +273,6 @@ def find_settlements_advanced(lat, lon, g1, g_full, wind_dir, v_wind):
                             area_1_km2 = (int_m_1.area * cos_lat_sq) / 1_000_000
                             pop_1_affected = int(area_1_km2 * density)
                         
-                        # Розрахунок відстані
                         ctr = geom.centroid
                         dx = (ctr.x - lon) * 111.32 * math.cos(math.radians(lat))
                         dy = (ctr.y - lat) * 110.57
@@ -274,11 +293,11 @@ def find_settlements_advanced(lat, lon, g1, g_full, wind_dir, v_wind):
                         
         return sorted(affected, key=lambda x: x["dist"])
     except Exception as e:
-        st.error(f"Помилка зв'язку з картографічним сервером: {e}")
-        return []
+        if status_ui: status_ui.write(f"❌ Помилка: {e}")
+        return None
 
 # --- 4. ІНТЕРФЕЙС (UI) ---
-st.set_page_config(page_title="НХР V.6.1.0 Tactical GIS", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="НХР V.6.2.0 Tactical GIS", layout="wide", initial_sidebar_state="collapsed")
 
 st.markdown("""
     <style>
@@ -357,11 +376,20 @@ with col_inputs:
     res = calculate_zone(sub_name, qty, spill, storage, v_wind, stab, t_air, terrain, time_hrs)
 
     st.markdown("---")
-    if st.button("🔍 Аналіз ГІС (Пошук населення)", use_container_width=True):
-        with st.spinner("Обчислення перехрещень полігонів Shapely..."):
-            st.session_state.affected_places = find_settlements_advanced(st.session_state.lat, st.session_state.lon, res['g1'], res['g_full'], w_dir, v_wind)
     
-    # Вивід ЗВЕДЕНИХ результатів під кнопкою
+    # КНОПКА З ІНТЕРАКТИВНИМ СТАТУСОМ
+    if st.button("🔍 Аналіз ГІС (Пошук населення)", use_container_width=True):
+        with st.status("🔍 Розпочато геоінформаційний аналіз...", expanded=True) as status:
+            st.session_state.affected_places = find_settlements_advanced(
+                st.session_state.lat, st.session_state.lon, 
+                res['g1'], res['g_full'], w_dir, v_wind, status
+            )
+            if st.session_state.affected_places is not None:
+                status.update(label="✅ Аналіз успішно завершено!", state="complete", expanded=False)
+            else:
+                status.update(label="❌ Помилка під час аналізу", state="error", expanded=True)
+    
+    # Вивід ЗВЕДЕНИХ результатів
     if st.session_state.affected_places is not None:
         if len(st.session_state.affected_places) > 0:
             total_pop_full = sum(p['pop_full'] for p in st.session_state.affected_places)
