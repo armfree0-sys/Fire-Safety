@@ -179,16 +179,20 @@ def find_settlements_advanced(lat, lon, radius_km, wind_dir, v_wind):
     cloud_poly = get_cloud_polygon(lat, lon, radius_km, wind_dir, v_wind)
     
     overpass_url = "http://overpass-api.de/api/interpreter"
+   # Додаємо внутрішній ліміт часу для сервера [timeout:25] та ціле число для радіуса
     query = f"""
-    [out:json];
+    [out:json][timeout:25];
     (
-      node["place"~"city|town|village|hamlet"](around:{radius_km*1000},{lat},{lon});
-      way["place"~"city|town|village|hamlet"](around:{radius_km*1000},{lat},{lon});
+      node["place"~"city|town|village|hamlet"](around:{int(radius_km*1000)},{lat},{lon});
+      way["place"~"city|town|village|hamlet"](around:{int(radius_km*1000)},{lat},{lon});
     );
     out geom;
     """
+    # Додаємо паспорт і збільшуємо час очікування
+    headers = {"User-Agent": "NHR_Tactical_Simulator/6.0.0"}
     try:
-        response = requests.get(overpass_url, params={'data': query}, timeout=10)
+        response = requests.get(overpass_url, params={'data': query}, headers=headers, timeout=30)
+        response.raise_for_status() # Це змусить Python відловлювати HTTP помилки одразу
         elements = response.json().get('elements', [])
         
         affected = []
