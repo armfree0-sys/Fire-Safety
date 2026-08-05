@@ -261,7 +261,7 @@ def find_settlements_advanced(lat, lon, radius_km, wind_dir, v_wind):
                         
         return sorted(affected, key=lambda x: x["dist"])
     except Exception as e:
-        print(e)
+        st.error(f"Overpass API Error: {e}") # Виведе помилку прямо на екран!
         return []
 
 # --- 4. ІНТЕРФЕЙС (UI) ---
